@@ -1,0 +1,29 @@
+{
+  "canisters": {
+    "infinitinote_backend": {
+      "candid": "src/infinitinote_backend/infinitinote_backend.did",
+      "package": "infinitinote_backend",
+      "type": "rust"
+    },
+    "infinitinote_frontend": {
+      "dependencies": [
+        "infinitinote_backend"
+      ],
+      "frontend": {
+        "entrypoint": "src/infinitinote_frontend/src/index.html"
+      },
+      "source": [
+        "src/infinitinote_frontend/assets",
+        "dist/infinitinote_frontend/"
+      ],
+      "type": "assets"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "version": 1
+}
