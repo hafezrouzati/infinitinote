@@ -11,7 +11,7 @@ fn main() {
     eframe::run_native(
         "eframe template",
         native_options,
-        Box::new(|cc| Box::new(eframetest::TemplateApp::new(cc))),
+        Box::new(|cc| Box::new(infinitinote_frontend::TemplateApp::new(cc))),
     );
 }
 

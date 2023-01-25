@@ -159,31 +159,32 @@ async fn generate_uuid() -> String
 #[update(name="createNotebook")]
 async fn create_notebook(title: String) -> String
 {
-    let principal_id = ic_cdk::api::caller();
+    let mut principal_id = ic_cdk::api::caller().clone();
     let notebook_id = UUID(generate_uuid().await);
 
     NOTEBOOK_STORE.with(|notebook_store| {
         let mut notebook_store_mut = notebook_store.borrow_mut();
-        let mut notebook = Notebook {
+        let notebook = Notebook {
             id: notebook_id.clone(),
             title: title,
             notes: Vec::<Note>::new(),
             tags: Vec::<String>::new()
         };
 
-        let principal_notebook_map = notebook_store_mut.get_mut(&principal_id);
+        let principal_notebook_map = notebook_store_mut.get(&principal_id);
 
         if principal_notebook_map.is_none()
         {
             let mut notebook_map = BTreeMap::<UUID, Notebook>::new();
             notebook_map.insert(notebook.id.clone(), notebook);
+
             notebook_store_mut.insert(principal_id, notebook_map);
         }
-
-        if principal_notebook_map.is_some()
+        else if principal_notebook_map.is_some()
         {
-            let mut notebooks_map = Some(principal_notebook_map).as_mut();
-            notebooks_map.insert(notebook_id);
+            let principal_notebooks_map_mut = notebook_store_mut.get_mut(&principal_id);
+            let notebooks_map = principal_notebooks_map_mut.unwrap();
+            notebooks_map.insert(notebook_id.clone(), notebook.clone());
         }
         
     });
@@ -200,19 +201,18 @@ async fn update_notebook_tags(notebook_id: String, tags: Vec<String>) -> Result<
 
     NOTEBOOK_STORE.with(|notebook_store| {
         let mut notebook_store_mut = notebook_store.borrow_mut();
-        let notebooks = notebook_store_mut.get_mut(&principal_id);
+        let principal_notebooks = notebook_store_mut.get(&principal_id);
 
-        if notebooks.is_none()
+        if principal_notebooks.is_none()
         {
             error_condition = true;
         }
 
-        if notebooks.is_some()
+        if principal_notebooks.is_some()
         {
-            let notebooks_mut = notebooks.as_mut();
-
-            let nb_id = UUID(notebook_id);
-            let mut notebook = notebooks_mut.entry(nb_id);
+            let notebooks_mut = notebook_store_mut.get_mut(&principal_id).unwrap();
+            
+            let notebook = notebooks_mut.entry(nid);
             notebook.and_modify(|n| 
                 n.tags = tags 
             );
