@@ -1,0 +1,3 @@
+[build]
+dist = "../../dist/infinitinote_frontend"
+filehash = false
