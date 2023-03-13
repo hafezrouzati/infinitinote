@@ -117,6 +117,14 @@ module.exports = {
           to: ".ic-assets.json5",
           noErrorOnMissing: true
         },
+        {
+          from: path.join(__dirname, "dist", frontendDirectory, "assets", "bridge.bundle.js"),
+          to: path.join(__dirname, "src", frontendDirectory, "assets", "bridge.bundle.js")
+        },
+        {
+          from: path.join(__dirname, "dist", frontendDirectory, "assets", "bridge.bundle.js.map"),
+          to: path.join(__dirname, "src", frontendDirectory, "assets", "bridge.bundle.js.map")
+        },
       ],
     }),
   ],

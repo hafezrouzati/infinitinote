@@ -17742,7 +17742,8 @@ __webpack_require__.r(__webpack_exports__);
 console.log("INITBRIDGE");
 window.backend = _declarations_infinitinote_backend__WEBPACK_IMPORTED_MODULE_0__.infinitinote_backend;
 window.dataStore = {};
-window.dataStore.notebooks = [];
+window.dataStore.principals = {};
+window.dataStore.notebooks = {};
 window.backend_result = "";
 async function backend_hello() {
   console.log("GREETING EARTHLING");
@@ -17769,17 +17770,38 @@ window.call_backend_func = async function () {
   return result;
 };
 window.get_notebooks_for_principal = async function (principal_id) {
-  if (window.dataStore.notebooks == null) {
-    window.dataStore.notebooks = [];
+  if (window.dataStore.principals[principal_id] == null) {
+    window.dataStore.principals[principal_id] = {};
+    window.dataStore.principals[principal_id].notebooks = {};
   }
+  return window.dataStore.principals[principal_id].notebooks;
 };
 window.add_notebook_for_principal = async function (principal_id, notebook_title) {
   let notebook_id = "test" + Math.floor(Math.random() * 1000);
   var notebook = {
-    uuid: "test000",
-    title: notebook_title
+    uuid: notebook_id,
+    title: notebook_title,
+    notes: []
   };
-  window.dataStore.notebooks.append(notebook);
+  if (window.dataStore.principals[principal_id] == null) {
+    window.dataStore.principals[principal_id] = {};
+    window.dataStore.principals[principal_id].notebooks = {};
+  }
+  window.dataStore.principals[principal_id].notebooks[notebook_id] = notebook;
+  console.log("added notebook");
+};
+window.add_note_to_notebook = async function (principal_id, notebook_id, note_title, note_text) {
+  var notebook = window.dataStore.principals[principal_id].notebooks[notebook_id];
+  var note = {
+    title: note_title,
+    text: note_text
+  };
+  notebook.notes.push(note);
+};
+window.get_notes_for_notebook = async function (principal_id, notebook_id) {
+  var notebook = window.dataStore.principals[principal_id].notebooks[notebook_id];
+  var notes = notebook.notes;
+  return notes;
 };
 window.backend_hello = function () {
   console.log("HELLO SPOCK");

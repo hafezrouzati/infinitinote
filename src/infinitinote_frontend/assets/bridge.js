@@ -1,4 +1,5 @@
 import { infinitinote_backend } from "../../declarations/infinitinote_backend";
+import { AuthClient } from "@dfinity/auth-client";
 //import infinitinote_backend from "ic:canisters/infinitinote_backend";
 // import { Actor, HttpAgent } from '@dfinity/agent';
 // import { Principal } from '@dfinity/principal';
@@ -9,7 +10,8 @@ window.backend = infinitinote_backend;
 
 window.dataStore = {};
 
-window.dataStore.notebooks = [];
+window.dataStore.principals = {}
+window.dataStore.notebooks = {};
 
 window.backend_result = "";
 
@@ -21,8 +23,6 @@ window.call_backend_one = async function(funcName) {
     var result;
     result = await window["backend"][funcName]();
 }
-
-window.call_backend_two
 
 window.call_backend_func = async function(...args) {
     var result;
@@ -47,10 +47,14 @@ window.call_backend_func = async function(...args) {
 }
 
 window.get_notebooks_for_principal = async function(principal_id) {
-    if (window.dataStore.notebooks == null)
+
+    if (window.dataStore.principals[principal_id] == null)
     {
-        window.dataStore.notebooks = [];
+        window.dataStore.principals[principal_id] = {};
+        window.dataStore.principals[principal_id].notebooks = {};
     }
+
+    return window.dataStore.principals[principal_id].notebooks;
 };
 
 window.add_notebook_for_principal = async function(principal_id, notebook_title)
@@ -58,13 +62,41 @@ window.add_notebook_for_principal = async function(principal_id, notebook_title)
     let notebook_id = "test" + Math.floor(Math.random() * 1000);
 
     var notebook = {
-        uuid : "test000",
-        title : notebook_title
+        uuid : notebook_id,
+        title : notebook_title,
+        notes : []
     }
 
-    window.dataStore.notebooks.append(notebook);
-}
+    if (window.dataStore.principals[principal_id] == null)
+    {
+        window.dataStore.principals[principal_id] = {};
+        window.dataStore.principals[principal_id].notebooks = {};
+    }
 
+    window.dataStore.principals[principal_id].notebooks[notebook_id] = notebook;
+    console.log("added notebook");
+};
+
+window.add_note_to_notebook = async function(principal_id, notebook_id, note_title, note_text) {
+    var notebook = window.dataStore.principals[principal_id].notebooks[notebook_id];
+    var note = {
+        id : "000",
+        title : note_title,
+        text : note_text
+    };
+    notebook.notes.push(note);
+};
+
+window.get_notes_for_notebook = async function(principal_id, notebook_id)
+{
+    var notebook = window.dataStore.principals[principal_id].notebooks[notebook_id];
+    var notes = notebook.notes;
+    return notes;
+};
+
+window.authenticate = async function() {
+
+};
 
 window.backend_hello = function() {
     console.log("HELLO SPOCK");

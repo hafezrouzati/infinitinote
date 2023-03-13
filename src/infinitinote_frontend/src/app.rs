@@ -1,6 +1,9 @@
 
 use std::cell::RefCell;
 
+use eframe::{egui};
+use egui_extras::RetainedImage;
+
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
@@ -41,7 +44,21 @@ extern "C" {
     async fn backend_principal() -> JsValue;
 
     #[wasm_bindgen(js_namespace = window)]
-    async fn call_backend_one(funcName: String) -> JsValue;
+    async fn call_backend_one(funcName: String) -> JsValue;    
+
+    #[wasm_bindgen(js_namespace = window)]
+    async fn get_notebooks_for_principal(principalId: String) -> JsValue;
+
+    #[wasm_bindgen(js_namespace = window)]
+    async fn get_notes_for_notebook(principalId: String, notebook_id: String) -> JsValue;
+
+    #[wasm_bindgen(js_namespace = window)]
+    async fn add_notebook_for_principal(principal_id: String, notebook_title: String);
+
+    #[wasm_bindgen(js_namespace = window)]
+    async fn add_note_to_notebook(principal_id: String, notebook_id: String, note_title: String, note_text: String);
+
+    
 }
 
 async fn test_yellow() {
@@ -93,16 +110,19 @@ pub struct TemplateApp {
     // Example stuff:
     label: String,
 
+    #[serde(skip)]
+    logo_image: RetainedImage,
+
     // this how you opt-out of serialization of a member
     #[serde(skip)]
     value: f32,
 }
 
 trait RenderMethods {
-    fn renderSignIn(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame);
-    fn renderNotebooksHome(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame);
-    fn renderNotebookAdd(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame);
-    fn renderNotebook(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame);
+    fn render_sign_in(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame);
+    fn render_notebooks_home(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame);
+    fn render_notebook_add(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame);
+    fn render_notebook(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame);
 }
 
 impl Default for TemplateApp {
@@ -111,6 +131,11 @@ impl Default for TemplateApp {
             // Example stuff:
             label: "Hello World!".to_owned(),
             value: 2.7,
+            logo_image: RetainedImage::from_image_bytes(
+                "../assets/ui/logo.png",
+                include_bytes!("../assets/ui/logo.png"),
+            )
+            .unwrap(),
         }
     }
 }
@@ -135,13 +160,29 @@ impl TemplateApp {
         *nav = to;
     }
 
-    fn renderSignIn(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame, nav: &mut Navigation)
+    fn render_header(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame, nav: &mut Navigation)
+    {
+        egui::TopBottomPanel::top("header")
+        .show_separator_line(false)
+        .frame(bg_frame)
+        .show(ctx, |ui|
+        {
+            ui.add(egui::ImageButton::new(
+                self.logo_image.texture_id(ctx),
+                self.logo_image.size_vec2(),
+            ));
+        });
+    }
+
+    fn render_sign_in(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame, nav: &mut Navigation)
     {
         let bg_color = egui::Color32::from_rgb(237, 239, 243);
         let bg_frame = egui::Frame::none().fill(bg_color);
 
         egui::CentralPanel::default().frame(bg_frame)
         .show(ctx, |ui| {
+
+
             if ui.button("Sign In").clicked() {
                 log(&"PURPLE".to_string());
                 
@@ -150,10 +191,10 @@ impl TemplateApp {
         });
     }
 
-    fn renderNotebooksHome(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame, nav: &mut Navigation)
+    fn render_notebooks_home(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame, nav: &mut Navigation)
     {
         let bg_color = egui::Color32::from_rgb(237, 239, 243);
-        let bg_frame = egui::Frame::none().fill(bg_color);
+        let bg_frame = egui::Frame::none().fill(bg_color);      
 
         egui::CentralPanel::default().frame(bg_frame).show(ctx, |ui| {
             if ui.button("Notebooks").clicked() {
@@ -172,7 +213,7 @@ impl TemplateApp {
         });
     }
 
-    fn renderNotebookAdd(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame, nav: &mut Navigation)
+    fn render_notebook_add(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame, nav: &mut Navigation)
     {
         egui::CentralPanel::default().show(ctx, |ui| {
             if ui.button("Notebook Add").clicked() {
@@ -186,7 +227,7 @@ impl TemplateApp {
         });
     }
 
-    fn renderNotebook(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame, nav: &mut Navigation)
+    fn render_notebook(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame, nav: &mut Navigation)
     {
         egui::CentralPanel::default().show(ctx, |ui| {
             if ui.button("Back").clicked() {
@@ -210,7 +251,7 @@ impl eframe::App for TemplateApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let Self { label, value } = self;
+        let Self { label, logo_image, value } = self;
 
         // Examples of how to create different panels and windows.
         // Pick whichever suits you.
@@ -232,21 +273,23 @@ impl eframe::App for TemplateApp {
         NAVIGATION_PATH.with(|navigation| {
             let mut nav_mut = navigation.borrow_mut();
 
+            self.render_header(ctx, _frame, &mut nav_mut);
+
             if *nav_mut == Navigation::SignIn
             {
-                self.renderSignIn(ctx, _frame, &mut nav_mut)
+                self.render_sign_in(ctx, _frame, &mut nav_mut)
             }
             else if *nav_mut == Navigation::NotebooksHome
             {
-                self.renderNotebooksHome(ctx, _frame, &mut nav_mut);
+                self.render_notebooks_home(ctx, _frame, &mut nav_mut);
             }
             else if *nav_mut == Navigation::NotebookAdd
             {
-                self.renderNotebookAdd(ctx, _frame, &mut nav_mut);
+                self.render_notebook_add(ctx, _frame, &mut nav_mut);
             }
             else if *nav_mut == Navigation::Notebook
             {
-                self.renderNotebook(ctx, _frame, &mut nav_mut);
+                self.render_notebook(ctx, _frame, &mut nav_mut);
             }
         });
 
