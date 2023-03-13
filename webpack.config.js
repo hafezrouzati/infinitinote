@@ -46,6 +46,7 @@ module.exports = {
   target: "web",
   mode: isDevelopment ? "development" : "production",
   entry: {
+    bridge: path.join(__dirname, "src", frontendDirectory, "assets", "bridge.js"),
     // The frontend.entrypoint points to the HTML file for this build, so we need
     // to replace the extension to `.js`.
     //index: path.join(__dirname, frontend_entry).replace(/\.html$/, ".js"),
@@ -66,8 +67,23 @@ module.exports = {
     },
   },
   output: {
-    filename: "index.js",
-    path: path.join(__dirname, "dist", frontendDirectory),
+    filename: '[name].bundle.js',
+    path: path.join(__dirname, "dist", frontendDirectory, "assets"),
+  },
+  module: {
+    rules:  [
+      {
+        test: /\.js$/,
+        exclude: /(node_modules|bower_components)/,
+        use: {
+          loader: 'babel-loader',
+          options: {
+            presets: ['@babel/preset-env']
+          }
+        }
+      }
+    ]
+
   },
 
   // Depending in the language or framework you are using for

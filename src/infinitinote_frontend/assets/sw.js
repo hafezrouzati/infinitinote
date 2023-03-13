@@ -2,8 +2,8 @@ var cacheName = 'egui-template-pwa';
 var filesToCache = [
   './',
   './index.html',
-  './infinitenote_frontend.js',
-  './infinitinote_frontend_bg.wasm',
+  //'./infinitenote_frontend.js',
+  //'./infinitinote_frontend_bg.wasm',
 ];
 
 /* Start the service worker and cache all of the app's content */

@@ -1,5 +1,7 @@
 import { infinitinote_backend } from "../../declarations/infinitinote_backend";
 
+const greeting = await infinitinote_backend.greet("TEST");
+
 document.querySelector("form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const button = e.target.querySelector("button");

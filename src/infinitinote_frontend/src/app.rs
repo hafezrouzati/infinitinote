@@ -1,9 +1,89 @@
 
-use wasm_bindgen::prelude::*;
+use std::cell::RefCell;
 
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsValue;
+use wasm_bindgen_futures::spawn_local;
+
+#[derive(Debug, PartialEq)]
+enum Navigation {
+    SignIn,
+    NotebooksHome,
+    NotebookAdd,
+    Notebook,
+    Note,
+    Preferences
+}
+
+thread_local!(
+    static NAVIGATION_PATH: RefCell<Navigation> = RefCell::new(Navigation::SignIn);
+);
+
+// lifted from the `console_log` example
 #[wasm_bindgen]
-extern {
-    fn greet(name: String);
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+
+    #[wasm_bindgen(js_namespace = backend)]
+    async fn greet(s: &str);
+
+    #[wasm_bindgen(js_namespace = window)]
+    fn backend_hello();
+
+    #[wasm_bindgen(js_namespace = window)]
+    fn get_backend_result() -> String;
+
+    #[wasm_bindgen(js_namespace = window)]
+    async fn backend_promise() -> JsValue;
+
+    #[wasm_bindgen(js_namespace=window)]
+    async fn backend_principal() -> JsValue;
+
+    #[wasm_bindgen(js_namespace = window)]
+    async fn call_backend_one(funcName: String) -> JsValue;
+}
+
+async fn test_yellow() {
+    log(&"Testing Yellow".to_string());
+
+    let result = backend_promise().await;
+
+    log(&result.as_string().unwrap());
+}
+
+async fn test_purple() {
+    log(&"Testing Purple".to_string());
+
+    let result = backend_principal().await;
+
+    log(&result.as_string().unwrap())
+}
+
+async fn test_green() {
+    log("TESTING GREEN");
+    let my_name = "Hafez";
+
+    //greet(&my_name).await;
+
+    // let backend: Principal = Principal::from_text("rrkah-fqaaa-aaaaa-aaaaq-cai").unwrap();
+
+    // let call_result: Result<(), _> = ic_cdk::call(backend, "test_greet_", ()).await;
+
+    // if call_result.is_ok()
+    // {
+    //     let call_result_option = call_result.ok();
+    //     if call_result_option.is_some()
+    //     {
+    //         let result  = call_result_option.unwrap();
+    //         log("AWESOME CALL DUDE");
+    //     }
+    // }
+    // else
+    // {
+    //     log("error occured");
+    // }
+    
 }
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
@@ -16,6 +96,13 @@ pub struct TemplateApp {
     // this how you opt-out of serialization of a member
     #[serde(skip)]
     value: f32,
+}
+
+trait RenderMethods {
+    fn renderSignIn(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame);
+    fn renderNotebooksHome(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame);
+    fn renderNotebookAdd(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame);
+    fn renderNotebook(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame);
 }
 
 impl Default for TemplateApp {
@@ -41,6 +128,76 @@ impl TemplateApp {
         }
 
         Default::default()
+    }
+
+    fn navigate(nav: &mut Navigation, to: Navigation)
+    {
+        *nav = to;
+    }
+
+    fn renderSignIn(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame, nav: &mut Navigation)
+    {
+        let bg_color = egui::Color32::from_rgb(237, 239, 243);
+        let bg_frame = egui::Frame::none().fill(bg_color);
+
+        egui::CentralPanel::default().frame(bg_frame)
+        .show(ctx, |ui| {
+            if ui.button("Sign In").clicked() {
+                log(&"PURPLE".to_string());
+                
+                Self::navigate(nav, Navigation::NotebooksHome);
+            }
+        });
+    }
+
+    fn renderNotebooksHome(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame, nav: &mut Navigation)
+    {
+        let bg_color = egui::Color32::from_rgb(237, 239, 243);
+        let bg_frame = egui::Frame::none().fill(bg_color);
+
+        egui::CentralPanel::default().frame(bg_frame).show(ctx, |ui| {
+            if ui.button("Notebooks").clicked() {
+                log(&"GREEN".to_string());
+            }
+
+            if ui.button("Add Notebook").clicked() {
+                log(&"GREEN".to_string());
+                Self::navigate(nav, Navigation::NotebookAdd);
+            }
+
+            if ui.button("Yellow Notebook").clicked() {
+                log(&"GREEN".to_string());
+                Self::navigate(nav, Navigation::Notebook);
+            }
+        });
+    }
+
+    fn renderNotebookAdd(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame, nav: &mut Navigation)
+    {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            if ui.button("Notebook Add").clicked() {
+                log(&"Notebook Add".to_string());
+            }
+
+            if ui.button("Finish Notebook Add").clicked() {
+                log(&"Notebook Add".to_string());
+                Self::navigate(nav, Navigation::NotebooksHome);
+            }
+        });
+    }
+
+    fn renderNotebook(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame, nav: &mut Navigation)
+    {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            if ui.button("Back").clicked() {
+                log(&"Notebook".to_string());
+                Self::navigate(nav, Navigation::NotebooksHome);
+            }
+
+            if ui.button("Notebook").clicked() {
+                log(&"Notebook".to_string());
+            }
+        });
     }
 }
 
@@ -71,6 +228,28 @@ impl eframe::App for TemplateApp {
                 });
             });
         });
+
+        NAVIGATION_PATH.with(|navigation| {
+            let mut nav_mut = navigation.borrow_mut();
+
+            if *nav_mut == Navigation::SignIn
+            {
+                self.renderSignIn(ctx, _frame, &mut nav_mut)
+            }
+            else if *nav_mut == Navigation::NotebooksHome
+            {
+                self.renderNotebooksHome(ctx, _frame, &mut nav_mut);
+            }
+            else if *nav_mut == Navigation::NotebookAdd
+            {
+                self.renderNotebookAdd(ctx, _frame, &mut nav_mut);
+            }
+            else if *nav_mut == Navigation::Notebook
+            {
+                self.renderNotebook(ctx, _frame, &mut nav_mut);
+            }
+        });
+
 
         // egui::SidePanel::left("side_panel").show(ctx, |ui| {
         //     ui.heading("Side Panel");
@@ -105,28 +284,70 @@ impl eframe::App for TemplateApp {
         //     });
         // });
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            // The central panel the region left after adding TopPanel's and SidePanel's
+        // egui::CentralPanel::default().show(ctx, |ui| {
+        //     // The central panel the region left after adding TopPanel's and SidePanel's
+        //     // ui.heading("TEST TEST TEST");
+        //     // ui.heading("infinitinote");
+        //     // ui.hyperlink("https://github.com/hafezrouzati/infinitinote");
+        //     // ui.add(egui::github_link_file!(
+        //     //     "https://github.com/hafezrouzati/infinitinote/",
+        //     //     "Source code."
+        //     // ));
 
-            ui.heading("infinitinote");
-            ui.hyperlink("https://github.com/hafezrouzati/infinitinote");
-            ui.add(egui::github_link_file!(
-                "https://github.com/hafezrouzati/infinitinote/",
-                "Source code."
-            ));
+        //     if ui.button("Greet Me").clicked() {
+        //         //let g = greet("Hafez".to_string());
+        //         //ui.label("greet");
+        //         log(&"GREEN".to_string());
+        //         backend_hello();
+        //     }
 
-            if ui.button("Greet").clicked() {
-                let g = greet("Hafez".to_string());
-                ui.label("greet");
-            }
+        //     if ui.button("Get Result").clicked() {
+        //         //let g = greet("Hafez".to_string());
+        //         //ui.label("greet");
+        //         log(&"YELLOW".to_string());
+        //         let r = get_backend_result();
+        //         log(&r);
+        //     }
+
+        //     if ui.button("Yellow").clicked() {
+        //         log(&"MELLOW YELLOW2".to_string());
+        //         //let g = greet("Hafez".to_string());
+        //         //ui.label("greet");
+        //         spawn_local(
+        //             test_yellow()
+        //         );
+                
+        //     }
+
+        //     if ui.button("Purple").clicked() {
+        //         log(&"Purple".to_string());
+        //         //let g = greet("Hafez".to_string());
+        //         //ui.label("greet");
+        //         spawn_local(
+        //             test_purple()
+        //         );
+                
+        //     }
+
+        //     if ui.button("Banana").clicked() {
+        //         log(&"Banana".to_string());
+        //         //let g = greet("Hafez".to_string());
+        //         //ui.label("greet");
+        //         spawn_local( async {
+        //                 let result = call_backend_one("greet".to_string()).await;
+        //                 log(&result.as_string().unwrap());
+        //             }
+        //         );
+                
+        //     }
             
-            ui.horizontal(|ui| {
-                ui.label("Write something: ");
-                ui.text_edit_multiline(label);
-            });
+        //     // ui.horizontal(|ui| {
+        //     //     ui.label("Write something: ");
+        //     //     ui.text_edit_multiline(label);
+        //     // });
 
-            egui::warn_if_debug_build(ui);
-        });
+        //     egui::warn_if_debug_build(ui);
+        // });
 
         if false {
             egui::Window::new("Window").show(ctx, |ui| {

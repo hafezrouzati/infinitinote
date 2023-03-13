@@ -2,7 +2,12 @@
   "name": "infinitinote_frontend",
   "version": "0.1.0",
   "description": "Internet Computer starter application",
-  "keywords": ["Internet Computer", "Motoko", "JavaScript", "Canister"],
+  "keywords": [
+    "Internet Computer",
+    "Motoko",
+    "JavaScript",
+    "Canister"
+  ],
   "scripts": {
     "build": "webpack",
     "prebuild": "npm run generate",
@@ -36,5 +41,10 @@
     "last 2 firefox version",
     "last 2 safari version",
     "last 2 edge version"
-  ]
+  ],
+  "dependencies": {
+    "@babel/preset-env": "^7.20.2",
+    "agent-js": "^1.0.0",
+    "babel-loader": "^9.1.2"
+  }
 }

@@ -1,3 +1,5 @@
 service : {
     "greet": (text) -> (text) query;
+    "test_greet": (text) -> (text) query;
+    "test_principal": () -> (text) query;
 }

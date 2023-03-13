@@ -87,7 +87,26 @@ thread_local! {
 
 #[query]
 fn greet(name: String) -> String {
-    format!("Hello, {}!", name)
+    format!("Hello Jello, {}!", name)
+}
+
+#[query]
+fn test_greet(name: String) -> String {
+    let g = format!("Hello, {}!", name);
+    return g.to_string();
+}
+
+#[query]
+fn test_principal() -> String {
+    let mut principal_id = ic_cdk::api::caller().clone();
+    let g = format!("Hello, {}", principal_id);
+    return g.to_string();
+}
+
+#[query]
+fn test_greet_() -> String {
+    let g = "GREETINGS EARTHLINGS";
+    return g.to_string();
 }
 
 ////////////////////////////////////////////////////
