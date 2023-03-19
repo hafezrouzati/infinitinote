@@ -1,12 +1,30 @@
 
 use std::cell::RefCell;
 
+use js_sys::Object;
+
+// use ic_cdk::{
+//     api::call,
+//     api::call::ManualReply,
+//     api::call::CallResult,
+//     export::{
+//         candid::CandidType,
+//         candid::Deserialize as CandidDeserialize,
+//         Principal,
+//     },
+// };
+
 use eframe::{egui};
+use egui::text_edit::TextEditState;
 use egui_extras::RetainedImage;
 
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
+
+use serde::Serialize;
+use serde::Deserialize;
+use serde_wasm_bindgen;
 
 #[derive(Debug, PartialEq)]
 enum Navigation {
@@ -21,6 +39,7 @@ enum Navigation {
 thread_local!(
     static NAVIGATION_PATH: RefCell<Navigation> = RefCell::new(Navigation::SignIn);
 );
+
 
 // lifted from the `console_log` example
 #[wasm_bindgen]
@@ -47,18 +66,26 @@ extern "C" {
     async fn call_backend_one(funcName: String) -> JsValue;    
 
     #[wasm_bindgen(js_namespace = window)]
-    async fn get_notebooks_for_principal(principalId: String) -> JsValue;
+    async fn authenticate();
+
+    #[wasm_bindgen(js_namespace = window)]
+    fn getUserPrincipal() -> JsValue;
+
+    #[wasm_bindgen(js_namespace = window)]
+    async fn add_notebook_for_principal(notebook_title: String);
+
+    #[wasm_bindgen(js_namespace = window)]
+    async fn get_notebooks_for_principal() -> JsValue;
+
+    #[wasm_bindgen(js_namespace = window)]
+    fn get_notebooks() -> JsValue;
 
     #[wasm_bindgen(js_namespace = window)]
     async fn get_notes_for_notebook(principalId: String, notebook_id: String) -> JsValue;
 
     #[wasm_bindgen(js_namespace = window)]
-    async fn add_notebook_for_principal(principal_id: String, notebook_title: String);
-
-    #[wasm_bindgen(js_namespace = window)]
     async fn add_note_to_notebook(principal_id: String, notebook_id: String, note_title: String, note_text: String);
 
-    
 }
 
 async fn test_yellow() {
@@ -80,38 +107,68 @@ async fn test_purple() {
 async fn test_green() {
     log("TESTING GREEN");
     let my_name = "Hafez";
+}
 
-    //greet(&my_name).await;
+#[wasm_bindgen]
+pub fn test_bind () 
+{
+    log(&"Success");
+}
 
-    // let backend: Principal = Principal::from_text("rrkah-fqaaa-aaaaa-aaaaq-cai").unwrap();
+#[derive(Serialize, Deserialize)]
+pub struct UUID(pub String);
 
-    // let call_result: Result<(), _> = ic_cdk::call(backend, "test_greet_", ()).await;
+#[derive(Serialize, Deserialize)]
+pub struct AssetID(pub String);
 
-    // if call_result.is_ok()
-    // {
-    //     let call_result_option = call_result.ok();
-    //     if call_result_option.is_some()
-    //     {
-    //         let result  = call_result_option.unwrap();
-    //         log("AWESOME CALL DUDE");
-    //     }
-    // }
-    // else
-    // {
-    //     log("error occured");
-    // }
-    
+#[derive(Serialize, Deserialize)]
+struct Note
+{
+    pub id: UUID,
+    pub title: String,
+    pub content: String,
+    pub attachments: Vec<String>,
+    pub tags: Vec<String>
+}
+
+#[derive(Serialize, Deserialize)]
+struct Notebook 
+{
+    pub id: UUID,
+    pub title: String,
+    pub notes: Vec<Note>,
+    pub tags: Vec<String>
 }
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
-#[derive(serde::Deserialize, serde::Serialize)]
+#[wasm_bindgen]
+#[derive(Serialize, Deserialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct TemplateApp {
     // Example stuff:
     label: String,
 
+    principal_id: String,
+
+    #[serde(skip)]
+    notebooks : Vec<Notebook>,
+    
+    #[serde(skip)]
+    selected_notebook : usize,
+
+    #[serde(skip)]
+    selected_note : usize,
+
+    // UI Images
+
     #[serde(skip)]
     logo_image: RetainedImage,
+
+    //#[serde(skip)]
+    //add_notebook_btn_img: RetainedImage,
+
+    #[serde(skip)]
+    add_notebook_text : String,
 
     // this how you opt-out of serialization of a member
     #[serde(skip)]
@@ -131,11 +188,20 @@ impl Default for TemplateApp {
             // Example stuff:
             label: "Hello World!".to_owned(),
             value: 2.7,
+            principal_id: "".to_owned(),
+            notebooks: Vec::new(),
+            selected_notebook: 0,
             logo_image: RetainedImage::from_image_bytes(
                 "../assets/ui/logo.png",
                 include_bytes!("../assets/ui/logo.png"),
             )
             .unwrap(),
+            // add_notebook_btn_img: RetainedImage::from_image_bytes(
+            //     "add_button.jpg",
+            //     include_bytes!("../assets/ui/in_logo.jpg"),
+            // )
+            // .unwrap(),
+            add_notebook_text: "".to_string(),
         }
     }
 }
@@ -155,6 +221,12 @@ impl TemplateApp {
         Default::default()
     }
 
+    pub fn set_principal_id(&mut self, id: String)
+    {
+        self.principal_id = id;
+        log(&"Set Principal");
+    }
+
     fn navigate(nav: &mut Navigation, to: Navigation)
     {
         *nav = to;
@@ -162,15 +234,18 @@ impl TemplateApp {
 
     fn render_header(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame, nav: &mut Navigation)
     {
+        let bg_color = egui::Color32::from_rgb(237, 239, 243);
+        let bg_frame = egui::Frame::none().fill(bg_color);
+
         egui::TopBottomPanel::top("header")
         .show_separator_line(false)
         .frame(bg_frame)
         .show(ctx, |ui|
         {
-            ui.add(egui::ImageButton::new(
-                self.logo_image.texture_id(ctx),
-                self.logo_image.size_vec2(),
-            ));
+            // ui.add(egui::ImageButton::new(
+            //     self.logo_image.texture_id(ctx),
+            //     self.logo_image.size_vec2(),
+            // ));
         });
     }
 
@@ -181,14 +256,41 @@ impl TemplateApp {
 
         egui::CentralPanel::default().frame(bg_frame)
         .show(ctx, |ui| {
-
-
             if ui.button("Sign In").clicked() {
                 log(&"PURPLE".to_string());
-                
+                spawn_local( async {
+                    authenticate().await;
+                })
+            }
+
+            if ui.button("Confirm Sign In").clicked() {
+                let result = getUserPrincipal();
+                let principal = result.as_string().unwrap();
+                log(&principal);
+                self.set_principal_id(principal);
                 Self::navigate(nav, Navigation::NotebooksHome);
             }
+
+            if ui.button("Test Sign In").clicked() {
+            }
         });
+    }
+
+    fn load_notebooks_for_principal(&mut self)
+    {
+        log(&"load".to_string());
+       
+        spawn_local( async {
+                let result = get_notebooks_for_principal().await;
+            }
+        );
+
+    }
+
+    fn load_notebooks(&mut self)
+    {
+        let result = get_notebooks();
+        self.notebooks = serde_wasm_bindgen::from_value(result).unwrap();
     }
 
     fn render_notebooks_home(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame, nav: &mut Navigation)
@@ -199,6 +301,21 @@ impl TemplateApp {
         egui::CentralPanel::default().frame(bg_frame).show(ctx, |ui| {
             if ui.button("Notebooks").clicked() {
                 log(&"GREEN".to_string());
+                self.load_notebooks_for_principal();
+            }
+
+            if ui.button("Get notebooks").clicked() {
+                log(&"GREEN".to_string());
+                self.load_notebooks();
+            }
+
+            //for notebook in &self.notebooks
+            for (i, notebook) in self.notebooks.iter().enumerate() 
+            {
+                if ui.button(&notebook.title).clicked() {
+                    self.selected_notebook = i;
+                    Self::navigate(nav, Navigation::Notebook);
+                }
             }
 
             if ui.button("Add Notebook").clicked() {
@@ -216,12 +333,21 @@ impl TemplateApp {
     fn render_notebook_add(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame, nav: &mut Navigation)
     {
         egui::CentralPanel::default().show(ctx, |ui| {
+            ui.heading("Add Notebook");
             if ui.button("Notebook Add").clicked() {
                 log(&"Notebook Add".to_string());
             }
 
+            ui.horizontal(|ui| {
+                ui.label("Notebook Title: ");
+                ui.add(egui::TextEdit::singleline(&mut self.add_notebook_text).hint_text("Enter A Notebook Title"));
+            });
+
             if ui.button("Finish Notebook Add").clicked() {
                 log(&"Notebook Add".to_string());
+                spawn_local(
+                    add_notebook_for_principal(self.add_notebook_text.clone())
+                );
                 Self::navigate(nav, Navigation::NotebooksHome);
             }
         });
@@ -229,16 +355,30 @@ impl TemplateApp {
 
     fn render_notebook(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame, nav: &mut Navigation)
     {
+        let notebook = &self.notebooks[self.selected_notebook];
+
         egui::CentralPanel::default().show(ctx, |ui| {
             if ui.button("Back").clicked() {
                 log(&"Notebook".to_string());
                 Self::navigate(nav, Navigation::NotebooksHome);
             }
 
-            if ui.button("Notebook").clicked() {
+            ui.label(&notebook.title);
+
+            if ui.button("Add Note").clicked() {
                 log(&"Notebook".to_string());
             }
         });
+    }
+
+    fn render_note(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame, nav: &mut Navigation)
+    {
+        if selected_note = -1
+        {
+
+        }
+        
+        ui.text_edit_singleline();
     }
 }
 
@@ -251,7 +391,15 @@ impl eframe::App for TemplateApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let Self { label, logo_image, value } = self;
+        let Self { 
+            label, 
+            principal_id,
+            notebooks,
+            selected_notebook,
+            logo_image, 
+            value, 
+            add_notebook_text,
+        } = self;
 
         // Examples of how to create different panels and windows.
         // Pick whichever suits you.

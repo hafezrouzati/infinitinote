@@ -4,10 +4,13 @@ use ic_cdk::{
     api::call::ManualReply,
     api::call::CallResult,
     export::{
-        candid::{CandidType, Deserialize},
+        candid::{CandidType, Deserialize, ser::ValueSerializer},
         Principal,
     },
 };
+
+use ic_cdk::export::candid::{candid_method};
+use ic_cdk::export::candid::{export_service};
 
 use ic_cdk_macros::*;
 use std::str;
@@ -15,6 +18,7 @@ use std::option::Option;
 use std::string::String;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
+use std::collections::btree_map::Entry;
 use sha256::{digest, try_digest};
 use egui::widgets::text_edit::TextEditState;
 use derive_more::{Display};
@@ -26,6 +30,7 @@ type ProfileStore = BTreeMap<Principal, User>;
 type AssetStore = BTreeMap<AssetID, Asset>;
 type NotebookStore = BTreeMap<Principal, BTreeMap<UUID, Notebook>>;
 type UserAssetStore = BTreeMap<Principal, AssetID>;
+type NotebookCounter = u32;
 
 /// type definitions ////
 #[derive(Clone, Debug, Default, CandidType, Deserialize)]
@@ -36,21 +41,21 @@ struct User
     password: String,
     pub description: String
 }
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Display)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Display, CandidType, Default, Deserialize)]
 #[display(fmt = "{}", _0)]
 pub struct UUID(pub String);
 
-#[derive(Clone)]
+#[derive(Clone, Default, CandidType)]
 struct Note
 {
     pub id: UUID,
     pub title: String,
-    pub content: TextEditState,
-    pub attachments: [AssetID; 128],
+    pub content: String,
+    pub attachments: Vec<AssetID>,
     pub tags: Vec<String>
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default, CandidType)]
 struct Notebook 
 {
     pub id: UUID,
@@ -59,7 +64,7 @@ struct Notebook
     pub tags: Vec<String>
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq, CandidType, PartialOrd, Ord)]
 pub struct AssetID(pub String);
 
 #[derive(Clone, Debug)]
@@ -83,6 +88,76 @@ thread_local! {
     static ASSET_STORE: RefCell<AssetStore>             = RefCell::default();
     static USER_ASSET_STORE: RefCell<UserAssetStore>    = RefCell::default();
     static NOTEBOOK_STORE: RefCell<NotebookStore>       = RefCell::default();
+    static NOTEBOOK_COUNTER: RefCell<u32>            = RefCell::default();
+}
+
+// impl CandidType for UUID {
+//     fn id() -> candid::types::TypeId {
+//         candid::types::TypeId::of::<UUID>()
+//     }
+
+//     fn _ty() -> candid::types::Type {
+//         candid::types::Type::Text
+//     }
+
+//     fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error> {
+//         where S: candid::ser::ValueSerializer;
+//         {
+//             self.0.idl_serialize(s)?;
+//             Ok(())
+//         }
+//     }
+// }
+
+// impl CandidType for AssetID {
+//     fn id() -> candid::types::TypeId {
+//         candid::types::TypeId::of::<AssetID>()
+//     }
+
+//     fn _ty() -> candid::types::Type {
+//         candid::types::Type::Text
+//     }
+
+//     fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error> {
+//         where S: candid::ser::ValueSerializer;
+//         {
+//             self.0.idl_serialize(s)?;
+//             Ok(())
+//         }
+
+//     }
+// }
+
+// impl CandidType for Note {
+//     fn id() -> candid::types::TypeId {
+//         candid::types::TypeId::of::<Note>()
+//     }
+//     fn _ty() -> candid::types::Type {
+//         candid::types::Type::Record(vec![
+//             ("id".to_string(), UUID::_ty()),
+//             ("title".to_string(), String::ty()),
+//             ("content".to_string(), String::ty()),
+//             ("attachments".to_string(), candid::types::Type::Vec(Box::new(AssetID::_ty()))),
+//             ("tags".to_string(), candid::types::Type::Vec(Box::new(String::ty()))),
+//         ])
+//     }
+//     fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error> {
+//         where S: candid::ser::ValueSerializer;
+//         {
+//             self.id.idl_serialize(s)?;
+//             self.title.idl_serialize(s)?;
+//             self.content.idl_serialize(s)?;
+//             self.attachments.idl_serialize(s)?;
+//             self.tags.idl_serialize(s)?;
+//             Ok(())
+//         }
+//     }
+// }
+
+#[query(name = "__get_candid_interface_tmp_hack")]
+fn export_candid() -> String {
+    export_service!();
+    __export_service()
 }
 
 #[query]
@@ -163,22 +238,76 @@ async fn generate_uuid() -> String
         }
     };
 
-    let rnd = Ok::<std::vec::Vec<u8>, &str>(rnd_buffer.0);
-
-    let rnd_string = String::from_utf8(rnd.ok().unwrap());
-    if rnd_string.is_ok()
-    {
-        let rnd_hash = digest(rnd_string.ok().unwrap());
-        val = rnd_hash;
-    }
+    let rnd_string = String::from_utf8_lossy(&rnd_buffer.0).to_string();
+    
+    let rnd_hash = digest(rnd_string);
+    val = rnd_hash;
     
     return val;
 }
 
-#[update(name="createNotebook")]
+async fn get_notebook_mut(notebook_id: String) -> Option<Notebook>
+{
+    let principal_id = ic_cdk::api::caller();
+    let nid = UUID(notebook_id);
+    let mut error_condition = false;
+
+    NOTEBOOK_STORE.with(|notebook_store| {
+        let mut notebook_store_mut = notebook_store.borrow_mut();
+        let principal_notebooks = notebook_store_mut.get(&principal_id);
+
+        if principal_notebooks.is_none()
+        {
+            error_condition = true;
+        }
+
+        if principal_notebooks.is_some()
+        {
+            let notebooks_mut = notebook_store_mut.get_mut(&principal_id).unwrap();
+            
+            let notebook = notebooks_mut.get_mut(&nid);
+            Some(notebook);
+        }
+    });
+
+    None
+}
+
+#[candid_method(query)]
+#[query]
+async fn get_notebooks_for_principal() -> Vec<Notebook>
+{
+    let mut principal_id = ic_cdk::api::caller().clone();
+    ic_cdk::println!("Pricipal ID {:?}", principal_id);
+    let mut ret_val = Vec::<Notebook>::new();
+
+    NOTEBOOK_STORE.with(|notebook_store| {
+        let mut notebook_store_mut = notebook_store.borrow_mut();
+        let principal_notebook_map = notebook_store_mut.get(&principal_id);
+        if principal_notebook_map.is_none()
+        {
+            ret_val = Vec::<Notebook>::new();
+        }
+        else if principal_notebook_map.is_some()
+        {
+            let principal_notebooks_map_mut = notebook_store_mut.get_mut(&principal_id);
+            let notebooks_map = principal_notebooks_map_mut.unwrap();
+
+            let notebooks = notebooks_map.values().cloned();
+
+            ret_val = Vec::<Notebook>::from_iter(notebooks);
+        }
+    });
+
+    return ret_val;
+}
+
+#[candid_method]
+#[update(name="create_notebook")]
 async fn create_notebook(title: String) -> String
 {
     let mut principal_id = ic_cdk::api::caller().clone();
+
     let notebook_id = UUID(generate_uuid().await);
 
     NOTEBOOK_STORE.with(|notebook_store| {
@@ -211,7 +340,124 @@ async fn create_notebook(title: String) -> String
     return notebook_id.to_string();
 }
 
-#[update(name="updateNotebookTags")]
+#[update(name="add_notebook_for_principal")]
+async fn add_notebook_for_principal(principal_string: String, notebook_title: String) -> String
+{
+    let principal_id = Principal::from_text(principal_string).unwrap();
+    let principal_caller = ic_cdk::api::caller();
+
+    ic_cdk::println!("Pricipal ID {:?}", principal_id);
+    ic_cdk::println!("Pricipal Caller {:?}", principal_caller);
+
+    if principal_id.eq(&principal_caller)
+    {
+        ic_cdk::println!("ARE EQUAL");
+    }
+    else {
+        ic_cdk::println!("ARE NOT EQUAL");
+    }
+
+    let notebook_id = UUID(generate_uuid().await);
+
+    NOTEBOOK_STORE.with(|notebook_store| {
+        let mut notebook_store_mut = notebook_store.borrow_mut();
+        let notebook = Notebook {
+            id: notebook_id.clone(),
+            title: notebook_title,
+            notes: Vec::<Note>::new(),
+            tags: Vec::<String>::new()
+        };
+
+        let principal_notebook_map = notebook_store_mut.get(&principal_id);
+
+        if principal_notebook_map.is_none()
+        {
+            let mut notebook_map = BTreeMap::<UUID, Notebook>::new();
+            notebook_map.insert(notebook.id.clone(), notebook);
+
+            notebook_store_mut.insert(principal_id, notebook_map);
+        }
+        else if principal_notebook_map.is_some()
+        {
+            let principal_notebooks_map_mut = notebook_store_mut.get_mut(&principal_id);
+            let notebooks_map = principal_notebooks_map_mut.unwrap();
+            notebooks_map.insert(notebook_id.clone(), notebook.clone());
+        }
+        
+    });
+
+    return notebook_id.to_string();
+}
+
+#[update(name="add_tag_to_notebook")]
+async fn add_tag_to_notebook(notebook_id: String, tag: String) -> String
+{
+    let principal_id = ic_cdk::api::caller();
+    let nid = UUID(notebook_id);
+    let mut error_condition = false;
+    let the_tag = tag.clone();
+
+    NOTEBOOK_STORE.with(|notebook_store| {
+        let mut notebook_store_mut = notebook_store.borrow_mut();
+        let principal_notebooks = notebook_store_mut.get(&principal_id);
+
+        if principal_notebooks.is_none()
+        {
+            error_condition = true;
+        }
+
+        if principal_notebooks.is_some()
+        {
+            let mut notebooks_mut = notebook_store_mut.get_mut(&principal_id).unwrap();
+            
+            let notebook = notebooks_mut.entry(nid);
+                notebook.and_modify(|n| 
+                n.tags.push(tag)
+            );
+        }
+
+    });
+
+    if error_condition
+    {
+        return "Invalid notebook ID".to_string();
+    }
+
+    return format!("Added Tag {}", the_tag);
+}
+
+#[query(name="get_tags_for_notebook")]
+async fn get_tags_for_notebook(notebook_id: String) -> Vec<String>
+{
+    let principal_id = ic_cdk::api::caller();
+    let nid = UUID(notebook_id);
+    let mut error_condition = false;
+    let mut ret_value = Vec::<String>::new();
+    ret_value.push("Error".to_string());
+
+    NOTEBOOK_STORE.with(|notebook_store| {
+        let mut notebook_store_mut = notebook_store.borrow_mut();
+        let principal_notebooks = notebook_store_mut.get(&principal_id);
+
+        if principal_notebooks.is_none()
+        {
+            error_condition = true;
+        }
+
+        if principal_notebooks.is_some()
+        {
+            let notebooks_mut = notebook_store_mut.get_mut(&principal_id).unwrap();
+            let notebook = notebooks_mut.entry(nid);
+            notebook.and_modify(|n|
+                ret_value = n.tags.clone()
+            );
+        }   
+    });
+
+    return ret_value;
+}
+
+#[update(name="update_notebook_tags")]
 async fn update_notebook_tags(notebook_id: String, tags: Vec<String>) -> Result<String, String>
 {
     let principal_id = ic_cdk::api::caller();
@@ -245,6 +491,83 @@ async fn update_notebook_tags(notebook_id: String, tags: Vec<String>) -> Result<
     }
 
     return Ok("Updated Tags".to_string())
+}
+
+
+
+#[update(name="add_note_to_notebook")]
+async fn add_note_to_notebook(notebook_id: String, note_title: String, note_content: String, note_tags: Vec<String>) -> String
+{
+    let mut principal_id = ic_cdk::api::caller().clone();
+
+    let note_id = UUID(generate_uuid().await);
+    let note_id_clone = note_id.clone();
+    let note  = Note { 
+        id: note_id,
+        title: note_title,
+        content: note_content,
+        attachments: Vec::<AssetID>::new(),
+        tags: note_tags
+    };
+    let nid = UUID(notebook_id);
+    let mut error_condition = false;
+
+    NOTEBOOK_STORE.with(|notebook_store| {
+        let mut notebook_store_mut = notebook_store.borrow_mut();
+        let principal_notebooks = notebook_store_mut.get(&principal_id);
+
+        if principal_notebooks.is_none()
+        {
+            error_condition = true;
+        }
+
+        if principal_notebooks.is_some()
+        {
+            let notebooks_mut = notebook_store_mut.get_mut(&principal_id).unwrap();
+            let notebook = notebooks_mut.entry(nid);
+            notebook.and_modify(|n|
+                n.notes.push(note)
+            );
+        }
+    });
+
+    if error_condition
+    {
+        return format!("Failed to add note");
+    }
+    else {
+        return format!("Added note {}", note_id_clone);
+    }
+}
+
+#[query]
+async fn get_notes_for_notebook(notebook_id: String) -> Vec<Note>
+{
+    let principal_id = ic_cdk::api::caller().clone();
+    let nid = UUID(notebook_id);
+    let mut error_condition = false;
+    let mut ret_val = Vec::<Note>::new();
+
+    NOTEBOOK_STORE.with(|notebook_store| {
+        let mut notebook_store_mut = notebook_store.borrow_mut();
+        let principal_notebooks = notebook_store_mut.get(&principal_id);
+
+        if principal_notebooks.is_none()
+        {
+            error_condition = true;
+        }
+
+        if principal_notebooks.is_some()
+        {
+            let notebooks_mut = notebook_store_mut.get_mut(&principal_id).unwrap();
+            let notebook = notebooks_mut.entry(nid);
+            notebook.and_modify(|n|
+                ret_val = n.notes.clone()
+            );
+        }
+    });
+
+    return ret_val;
 }
 
 ////////////////////////////////////////////////////
@@ -301,5 +624,32 @@ fn upload_file_chunk(asset_id: String, name: String, mut data: Vec<u8>) -> Manua
     else 
     {
         return ManualReply::one(Some("Error uploading chunk {_errorMessage}"));
+    }
+}
+
+
+
+
+/// Tests
+
+#[cfg(test)]
+mod tests {
+    use super::export_candid;
+
+    #[test]
+    fn save_candid() {
+        use std::env;
+        use std::fs::write;
+        use std::path::PathBuf;
+
+        let dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
+        let dir = dir
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .join("src")
+            .join("infinitinote_backend");
+        write(dir.join("infinitinote_backed.candid.did"), export_candid()).expect("Write failed.");
     }
 }

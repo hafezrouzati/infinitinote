@@ -4,6 +4,10 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
 
+const network =
+process.env.DFX_NETWORK ||
+(process.env.NODE_ENV === "production" ? "ic" : "local");
+
 function initCanisterEnv() {
   let localCanisters, prodCanisters;
   try {
@@ -21,10 +25,6 @@ function initCanisterEnv() {
     console.log("No production canister_ids.json found. Continuing with local");
   }
 
-  const network =
-    process.env.DFX_NETWORK ||
-    (process.env.NODE_ENV === "production" ? "ic" : "local");
-
   const canisterConfig = network === "local" ? localCanisters : prodCanisters;
 
   return Object.entries(canisterConfig).reduce((prev, current) => {
@@ -35,6 +35,8 @@ function initCanisterEnv() {
   }, {});
 }
 const canisterEnvVariables = initCanisterEnv();
+
+const internetIdentityUrl = network === "local" ? `http://localhost:4943/?canisterId=${canisterEnvVariables["INTERNET_IDENTITY_CANISTER_ID"]}` : `https://identity.ic0.app`;
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 
@@ -47,6 +49,7 @@ module.exports = {
   mode: isDevelopment ? "development" : "production",
   entry: {
     bridge: path.join(__dirname, "src", frontendDirectory, "assets", "bridge.js"),
+    //frontend: path.join(__dirname, "dist",frontendDirectory, "infinitinote_frontend.js" )
     // The frontend.entrypoint points to the HTML file for this build, so we need
     // to replace the extension to `.js`.
     //index: path.join(__dirname, frontend_entry).replace(/\.html$/, ".js"),
@@ -68,6 +71,7 @@ module.exports = {
   },
   output: {
     filename: '[name].bundle.js',
+    publicPath: '/',
     path: path.join(__dirname, "dist", frontendDirectory, "assets"),
   },
   module: {
@@ -104,6 +108,7 @@ module.exports = {
     }),
     new webpack.EnvironmentPlugin({
       NODE_ENV: "development",
+      II_URL: internetIdentityUrl,
       ...canisterEnvVariables,
     }),
     new webpack.ProvidePlugin({
