@@ -1,18 +1,7 @@
-
+use std::fmt;
 use std::cell::RefCell;
 
 use js_sys::Object;
-
-// use ic_cdk::{
-//     api::call,
-//     api::call::ManualReply,
-//     api::call::CallResult,
-//     export::{
-//         candid::CandidType,
-//         candid::Deserialize as CandidDeserialize,
-//         Principal,
-//     },
-// };
 
 use eframe::{egui};
 use egui::text_edit::TextEditState;
@@ -84,29 +73,11 @@ extern "C" {
     async fn get_notes_for_notebook(principalId: String, notebook_id: String) -> JsValue;
 
     #[wasm_bindgen(js_namespace = window)]
-    async fn add_note_to_notebook(principal_id: String, notebook_id: String, note_title: String, note_text: String);
+    async fn add_note_to_notebook(notebook_id: String, note_title: String, note_text: String);
 
-}
+    #[wasm_bindgen(js_namespace = window)]
+    async fn update_note(notebook_id: String, note_id: String, note_title: String, note_text: String);
 
-async fn test_yellow() {
-    log(&"Testing Yellow".to_string());
-
-    let result = backend_promise().await;
-
-    log(&result.as_string().unwrap());
-}
-
-async fn test_purple() {
-    log(&"Testing Purple".to_string());
-
-    let result = backend_principal().await;
-
-    log(&result.as_string().unwrap())
-}
-
-async fn test_green() {
-    log("TESTING GREEN");
-    let my_name = "Hafez";
 }
 
 #[wasm_bindgen]
@@ -117,6 +88,12 @@ pub fn test_bind ()
 
 #[derive(Serialize, Deserialize)]
 pub struct UUID(pub String);
+
+impl fmt::Display for UUID {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct AssetID(pub String);
@@ -169,6 +146,12 @@ pub struct TemplateApp {
 
     #[serde(skip)]
     add_notebook_text : String,
+    
+    #[serde(skip)]
+    add_note_title_text : String,
+
+    #[serde(skip)]
+    add_note_text : String,
 
     // this how you opt-out of serialization of a member
     #[serde(skip)]
@@ -191,6 +174,7 @@ impl Default for TemplateApp {
             principal_id: "".to_owned(),
             notebooks: Vec::new(),
             selected_notebook: 0,
+            selected_note: 777,
             logo_image: RetainedImage::from_image_bytes(
                 "../assets/ui/logo.png",
                 include_bytes!("../assets/ui/logo.png"),
@@ -202,6 +186,8 @@ impl Default for TemplateApp {
             // )
             // .unwrap(),
             add_notebook_text: "".to_string(),
+            add_note_title_text: "".to_string(),
+            add_note_text: "".to_string(),
         }
     }
 }
@@ -332,7 +318,10 @@ impl TemplateApp {
 
     fn render_notebook_add(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame, nav: &mut Navigation)
     {
-        egui::CentralPanel::default().show(ctx, |ui| {
+        let bg_color = egui::Color32::from_rgb(237, 239, 243);
+        let bg_frame = egui::Frame::none().fill(bg_color);  
+
+        egui::CentralPanel::default().frame(bg_frame).show(ctx, |ui| {
             ui.heading("Add Notebook");
             if ui.button("Notebook Add").clicked() {
                 log(&"Notebook Add".to_string());
@@ -366,19 +355,51 @@ impl TemplateApp {
             ui.label(&notebook.title);
 
             if ui.button("Add Note").clicked() {
+                Self::navigate(nav, Navigation::Note);
                 log(&"Notebook".to_string());
             }
+
+            for (i, note) in notebook.notes.iter().enumerate() 
+            {
+                if ui.button(&note.title).clicked() {
+                    self.selected_note = i;
+                    Self::navigate(nav, Navigation::Note);
+                }
+            }
+
+
         });
     }
 
-    fn render_note(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame, nav: &mut Navigation)
+    fn render_note_edit(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame, nav: &mut Navigation)
     {
-        if selected_note = -1
-        {
+        let notebook = &self.notebooks[self.selected_notebook];
 
-        }
-        
-        ui.text_edit_singleline();
+        egui::CentralPanel::default().show(ctx, |ui| {
+                
+            if ui.button("Save Note").clicked()
+            {
+                if self.selected_note == 777
+                {
+                    spawn_local( 
+                            add_note_to_notebook(notebook.id.to_string(), self.add_note_title_text.clone(), self.add_note_text.clone())
+                    );
+                }
+                else 
+                {
+                    let note = &notebook.notes[self.selected_note];
+                    spawn_local(
+                            update_note(notebook.id.to_string(), note.id.to_string(), self.add_note_title_text.clone(), self.add_note_text.clone())
+                    );
+                }
+            }
+
+            ui.label(&notebook.title);
+            ui.label("/");
+            ui.text_edit_singleline(&mut self.add_note_title_text);
+
+            ui.text_edit_multiline(&mut self.add_note_text);
+        });
     }
 }
 
@@ -396,9 +417,12 @@ impl eframe::App for TemplateApp {
             principal_id,
             notebooks,
             selected_notebook,
+            selected_note,
             logo_image, 
             value, 
             add_notebook_text,
+            add_note_title_text,
+            add_note_text,
         } = self;
 
         // Examples of how to create different panels and windows.
@@ -439,106 +463,12 @@ impl eframe::App for TemplateApp {
             {
                 self.render_notebook(ctx, _frame, &mut nav_mut);
             }
+            else if *nav_mut == Navigation::Note
+            {
+                self.render_note_edit(ctx, _frame, &mut nav_mut);
+            }
+
         });
-
-
-        // egui::SidePanel::left("side_panel").show(ctx, |ui| {
-        //     ui.heading("Side Panel");
-
-        //     // ui.horizontal(|ui| {
-        //     //     ui.label("Write something: ");
-        //     //     ui.text_edit_singleline(label);
-        //     // });
-
-        //     // ui.add(egui::Slider::new(value, 0.0..=10.0).text("value"));
-        //     // if ui.button("Increment").clicked() {
-        //     //     *value += 1.0;
-        //     // }
-
-        //     if ui.button("Greet").clicked() {
-        //         let g = greet("Hafez".to_string());
-        //         ui.label("greet");
-        //     }
-
-        //     ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
-        //         ui.horizontal(|ui| {
-        //             ui.spacing_mut().item_spacing.x = 0.0;
-        //             ui.label("powered by ");
-        //             ui.hyperlink_to("egui", "https://github.com/emilk/egui");
-        //             ui.label(" and ");
-        //             ui.hyperlink_to(
-        //                 "eframe",
-        //                 "https://github.com/emilk/egui/tree/master/crates/eframe",
-        //             );
-        //             ui.label(".");
-        //         });
-        //     });
-        // });
-
-        // egui::CentralPanel::default().show(ctx, |ui| {
-        //     // The central panel the region left after adding TopPanel's and SidePanel's
-        //     // ui.heading("TEST TEST TEST");
-        //     // ui.heading("infinitinote");
-        //     // ui.hyperlink("https://github.com/hafezrouzati/infinitinote");
-        //     // ui.add(egui::github_link_file!(
-        //     //     "https://github.com/hafezrouzati/infinitinote/",
-        //     //     "Source code."
-        //     // ));
-
-        //     if ui.button("Greet Me").clicked() {
-        //         //let g = greet("Hafez".to_string());
-        //         //ui.label("greet");
-        //         log(&"GREEN".to_string());
-        //         backend_hello();
-        //     }
-
-        //     if ui.button("Get Result").clicked() {
-        //         //let g = greet("Hafez".to_string());
-        //         //ui.label("greet");
-        //         log(&"YELLOW".to_string());
-        //         let r = get_backend_result();
-        //         log(&r);
-        //     }
-
-        //     if ui.button("Yellow").clicked() {
-        //         log(&"MELLOW YELLOW2".to_string());
-        //         //let g = greet("Hafez".to_string());
-        //         //ui.label("greet");
-        //         spawn_local(
-        //             test_yellow()
-        //         );
-                
-        //     }
-
-        //     if ui.button("Purple").clicked() {
-        //         log(&"Purple".to_string());
-        //         //let g = greet("Hafez".to_string());
-        //         //ui.label("greet");
-        //         spawn_local(
-        //             test_purple()
-        //         );
-                
-        //     }
-
-        //     if ui.button("Banana").clicked() {
-        //         log(&"Banana".to_string());
-        //         //let g = greet("Hafez".to_string());
-        //         //ui.label("greet");
-        //         spawn_local( async {
-        //                 let result = call_backend_one("greet".to_string()).await;
-        //                 log(&result.as_string().unwrap());
-        //             }
-        //         );
-                
-        //     }
-            
-        //     // ui.horizontal(|ui| {
-        //     //     ui.label("Write something: ");
-        //     //     ui.text_edit_multiline(label);
-        //     // });
-
-        //     egui::warn_if_debug_build(ui);
-        // });
 
         if false {
             egui::Window::new("Window").show(ctx, |ui| {

@@ -493,8 +493,6 @@ async fn update_notebook_tags(notebook_id: String, tags: Vec<String>) -> Result<
     return Ok("Updated Tags".to_string())
 }
 
-
-
 #[update(name="add_note_to_notebook")]
 async fn add_note_to_notebook(notebook_id: String, note_title: String, note_content: String, note_tags: Vec<String>) -> String
 {
@@ -537,6 +535,64 @@ async fn add_note_to_notebook(notebook_id: String, note_title: String, note_cont
     }
     else {
         return format!("Added note {}", note_id_clone);
+    }
+}
+
+#[update(name="update_note")]
+async fn update_note(notebook_id: String, note_id: String, note_title: String, note_content: String, note_tags: Vec<String>) -> String
+{
+    let mut principal_id = ic_cdk::api::caller().clone();
+
+    if note_id == ""
+    {
+        // todo : do stuff
+        let note_id = generate_uuid().await;
+    }
+
+    let the_note_id = UUID(note_id);
+    let the_note_id_clone = the_note_id.clone();
+
+    let nid = UUID(notebook_id);
+    let mut error_condition = false;
+
+    NOTEBOOK_STORE.with(|notebook_store| {
+        let mut notebook_store_mut = notebook_store.borrow_mut();
+        let principal_notebooks = notebook_store_mut.get(&principal_id);
+
+        if principal_notebooks.is_none()
+        {
+            error_condition = true;
+        }
+
+        if principal_notebooks.is_some()
+        {
+            let notebooks_mut = notebook_store_mut.get_mut(&principal_id).unwrap();
+            let notebook = notebooks_mut.entry(nid);
+            notebook.and_modify(|n| {
+                let note_index = n.notes.iter().position(|note| note.id == the_note_id.clone()).unwrap();
+                let old_note = &n.notes[note_index];
+
+                let note  = Note { 
+                    id: the_note_id,
+                    title: note_title,
+                    content: note_content,
+                    attachments: old_note.attachments.clone(),
+                    tags: note_tags
+                };
+
+                n.notes.remove(note_index);
+
+                n.notes.push(note);
+            });
+        }
+    });
+
+    if error_condition
+    {
+        return format!("Failed to add note");
+    }
+    else {
+        return format!("Added note {}", the_note_id_clone);
     }
 }
 

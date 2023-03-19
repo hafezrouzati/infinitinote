@@ -9761,7 +9761,8 @@ const idlFactory = _ref => {
     'get_tags_for_notebook': IDL.Func([IDL.Text], [IDL.Vec(IDL.Text)], []),
     'greet': IDL.Func([IDL.Text], [IDL.Text], ['query']),
     'test_greet': IDL.Func([IDL.Text], [IDL.Text], ['query']),
-    'test_principal': IDL.Func([], [IDL.Text], ['query'])
+    'test_principal': IDL.Func([], [IDL.Text], ['query']),
+    'update_note': IDL.Func([IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Vec(IDL.Text)], [IDL.Text], [])
   });
 };
 const init = _ref2 => {
@@ -22234,14 +22235,13 @@ window.add_notebook_for_principal = async function (notebook_title) {
   console.log("added notebook");
   console.log(result);
 };
-window.add_note_to_notebook = async function (principal_id, notebook_id, note_title, note_text) {
-  var notebook = window.dataStore.principals[principal_id].notebooks[notebook_id];
-  var note = {
-    id: "000",
-    title: note_title,
-    text: note_text
-  };
-  notebook.notes.push(note);
+window.add_note_to_notebook = async function (notebook_id, note_title, note_text, note_tags) {
+  let result = await window.backend.add_note_to_notebook(notebook_id, note_title, note_text, []);
+  console.log(result);
+};
+window.update_note = async function (notebook_id, note_id, note_title, note_text, note_tags) {
+  let result = await window.backend.update_note(notebook_id, note_id, note_title, note_text, []);
+  console.log(result);
 };
 window.get_notes_for_notebook = async function (principal_id, notebook_id) {
   var notebook = window.dataStore.principals[principal_id].notebooks[notebook_id];
