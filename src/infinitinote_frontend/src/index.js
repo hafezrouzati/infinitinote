@@ -1,21 +1,33 @@
-import { infinitinote_backend } from "../../declarations/infinitinote_backend";
+import { createApp, ref } from 'vue';
+import App from './App.vue';
+import './styles/global.css';
+import { QuillEditor } from '@vueup/vue-quill'
+import '@vueup/vue-quill/dist/vue-quill.snow.css';
+//import '../assets/sass/style.scss';
 
-const greeting = await infinitinote_backend.greet("TEST");
+import { router } from './router';
 
-document.querySelector("form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const button = e.target.querySelector("button");
+const app = createApp(App);
 
-  const name = document.getElementById("name").value.toString();
+var userPrincipal = ref(null);
+var userAuthenticated = ref(false);
+var backend = ref(null);
+var notebooks = ref(null);
+var notes = ref(null);
+var selectedNotebook = ref(null);
+var selectedNote = ref(null);
+var isLoading = ref(false);
 
-  button.setAttribute("disabled", true);
+app.provide('userPrincipal', userPrincipal);
+app.provide('userAuthenticated', userAuthenticated);
+app.provide('backend', backend);
+app.provide('notebooks', notebooks);
+app.provide('notes', notes);
+app.provide('selectedNotebook', selectedNotebook);
+app.provide('selectedNote', selectedNote);
+app.provide('isLoading', isLoading);
 
-  // Interact with foo actor, calling the greet method
-  const greeting = await infinitinote_backend.greet(name);
+app.use(router);
+app.component('QuillEditor', QuillEditor);
 
-  button.removeAttribute("disabled");
-
-  document.getElementById("greeting").innerText = greeting;
-
-  return false;
-});
+app.mount("#app");

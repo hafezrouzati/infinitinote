@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face 
+{
+  font-family: 'montserrat';
+  src: url('../../assets/fonts/Montserrat-SemiBold.ttf') format('truetype');
+}
+
+@font-face 
+{
+  font-family: 'montserrat-medium';
+  src: url('../../assets/fonts/Montserrat-Medium.ttf') format('truetype');
+}
+
+html {
+    height: 100%;
+}
+
+body {
+    background-color: #EDEFF3;
+    margin: 0;
+    height: 100%;
+    width: 100%;
+}
+
+#app
+{
+    height: 100%;
+    width: 100%;
+}
+
+.image_button
+{
+    cursor: pointer;
+}
+
+.large-header {
+    font-family: montserrat;
+    font-size: 40px;
+}
+
+.small-header {
+    font-family: montserrat;
+    font-size: 16px;
+}
+
+
+#overlay {
+    position: fixed; /* Sit on top of the page content */
+    width: 100%; /* Full width (cover the whole page) */
+    height: 100%; /* Full height (cover the whole page) */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0,0,0,0.5); /* Black background with opacity */
+    z-index: 2; /* Specify a stack order in case you're using a different order for other elements */
+    cursor: pointer; /* Add a pointer on hover */
+}
+
+.border-margin
+{
+    margin-left: 26px;
+    margin-right: 26px;
+}
+
+.notebooks-header {
+    font-family: montserrat;
+    font-size: 40px;
+}
+

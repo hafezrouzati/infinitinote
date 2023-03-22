@@ -2,6 +2,7 @@ type Note = record {
     "id": text;
     "title": text;
     "content": text;
+    "content_delta": text;
     "attachments": vec text;
     "tags": vec text;
 };
@@ -19,8 +20,8 @@ service : {
     "add_notebook_for_principal": (principal_string: text, notebook_title: text) -> (text);
     "add_tag_to_notebook": (notebook_id: text, tag: text) -> (text); 
     "get_tags_for_notebook": (notebook_id: text) -> (vec text);
-    "add_note_to_notebook": (notebook_id: text, note_title: text, note_content: text, note_tags: vec text) -> (text);
-    "update_note": (notebook_id: text, note_id: text, note_title: text, note_content: text, note_tags: vec text) -> (text);
+    "add_note_to_notebook": (notebook_id: text, note_title: text, note_content: text, note_content_delta: text, note_tags: vec text) -> (text);
+    "update_note": (notebook_id: text, note_id: text, note_title: text, note_content: text, note_content_delta: text, note_tags: vec text) -> (text);
     "get_notes_for_notebook": (notebook_id: text) -> (vec Note);
     "greet": (text) -> (text) query;
     "test_greet": (text) -> (text) query;

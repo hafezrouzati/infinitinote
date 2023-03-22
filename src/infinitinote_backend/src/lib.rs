@@ -51,6 +51,7 @@ struct Note
     pub id: UUID,
     pub title: String,
     pub content: String,
+    pub content_delta: String,
     pub attachments: Vec<AssetID>,
     pub tags: Vec<String>
 }
@@ -494,7 +495,7 @@ async fn update_notebook_tags(notebook_id: String, tags: Vec<String>) -> Result<
 }
 
 #[update(name="add_note_to_notebook")]
-async fn add_note_to_notebook(notebook_id: String, note_title: String, note_content: String, note_tags: Vec<String>) -> String
+async fn add_note_to_notebook(notebook_id: String, note_title: String, note_content: String, note_content_delta: String, note_tags: Vec<String>) -> String
 {
     let mut principal_id = ic_cdk::api::caller().clone();
 
@@ -504,6 +505,7 @@ async fn add_note_to_notebook(notebook_id: String, note_title: String, note_cont
         id: note_id,
         title: note_title,
         content: note_content,
+        content_delta: note_content_delta,
         attachments: Vec::<AssetID>::new(),
         tags: note_tags
     };
@@ -531,15 +533,15 @@ async fn add_note_to_notebook(notebook_id: String, note_title: String, note_cont
 
     if error_condition
     {
-        return format!("Failed to add note");
+        return format!("Error");
     }
     else {
-        return format!("Added note {}", note_id_clone);
+        return note_id_clone.to_string();
     }
 }
 
 #[update(name="update_note")]
-async fn update_note(notebook_id: String, note_id: String, note_title: String, note_content: String, note_tags: Vec<String>) -> String
+async fn update_note(notebook_id: String, note_id: String, note_title: String, note_content: String, note_content_delta: String, note_tags: Vec<String>) -> String
 {
     let mut principal_id = ic_cdk::api::caller().clone();
 
@@ -576,6 +578,7 @@ async fn update_note(notebook_id: String, note_id: String, note_title: String, n
                     id: the_note_id,
                     title: note_title,
                     content: note_content,
+                    content_delta: note_content_delta,
                     attachments: old_note.attachments.clone(),
                     tags: note_tags
                 };

@@ -3,6 +3,7 @@ const webpack = require("webpack");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
+const { VueLoaderPlugin } = require("vue-loader");
 
 const network =
 process.env.DFX_NETWORK ||
@@ -48,11 +49,11 @@ module.exports = {
   target: "web",
   mode: isDevelopment ? "development" : "production",
   entry: {
-    bridge: path.join(__dirname, "src", frontendDirectory, "assets", "bridge.js"),
+    //bridge: path.join(__dirname, "src", frontendDirectory, "assets", "bridge.js"),
     //frontend: path.join(__dirname, "dist",frontendDirectory, "infinitinote_frontend.js" )
     // The frontend.entrypoint points to the HTML file for this build, so we need
     // to replace the extension to `.js`.
-    //index: path.join(__dirname, frontend_entry).replace(/\.html$/, ".js"),
+    index: path.join(__dirname, frontend_entry).replace(/\.html$/, ".js"),
   },
   devtool: isDevelopment ? "source-map" : false,
   optimization: {
@@ -70,12 +71,40 @@ module.exports = {
     },
   },
   output: {
-    filename: '[name].bundle.js',
-    publicPath: '/',
-    path: path.join(__dirname, "dist", frontendDirectory, "assets"),
+    //filename: '[name].bundle.js',
+    //publicPath: '/',
+    //path: path.join(__dirname, "dist", frontendDirectory, "assets"),
+    filename: "index.js",
+    path: path.join(__dirname, "dist", frontendDirectory),
   },
   module: {
     rules:  [
+      { test: /\.(ts|tsx|jsx)$/, loader: "ts-loader" },
+      { test: /\.css$/, use: ['vue-style-loader','css-loader'] },
+      { test: /\.vue$/, loader: 'vue-loader' },
+      {
+        test: /\.s(c|a)ss$/,
+        use: [
+          'vue-style-loader',
+          'css-loader',
+          'sass-loader',
+          {
+            loader: 'sass-loader',
+            // Requires sass-loader@^7.0.0
+            options: {
+              //implementation: require('sass'),
+              indentedSyntax: true // optional
+            },
+            // Requires >= sass-loader@^8.0.0
+            options: {
+              //implementation: require('sass'),
+              sassOptions: {
+                indentedSyntax: true // optional
+              },
+            },
+          },
+        ],
+      },
       {
         test: /\.js$/,
         exclude: /(node_modules|bower_components)/,
@@ -102,6 +131,7 @@ module.exports = {
   //  ]
   // },
   plugins: [
+    new VueLoaderPlugin(),
     new HtmlWebpackPlugin({
       template: path.join(__dirname, frontend_entry),
       cache: false,
@@ -121,14 +151,6 @@ module.exports = {
           from: `src/${frontendDirectory}/src/.ic-assets.json*`,
           to: ".ic-assets.json5",
           noErrorOnMissing: true
-        },
-        {
-          from: path.join(__dirname, "dist", frontendDirectory, "assets", "bridge.bundle.js"),
-          to: path.join(__dirname, "src", frontendDirectory, "assets", "bridge.bundle.js")
-        },
-        {
-          from: path.join(__dirname, "dist", frontendDirectory, "assets", "bridge.bundle.js.map"),
-          to: path.join(__dirname, "src", frontendDirectory, "assets", "bridge.bundle.js.map")
         },
       ],
     }),
