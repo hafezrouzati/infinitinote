@@ -1,5 +1,4 @@
 <template>
-    SIGNUP
     <img src="/ui/icp_login.png" class="image_button" @click="authenticate_icp()" >
 </template>
 

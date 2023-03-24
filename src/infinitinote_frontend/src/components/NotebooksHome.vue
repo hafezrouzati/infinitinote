@@ -63,7 +63,7 @@ onMounted( async () => {
 <template>
     <div class="notebooks-container">
         
-        <div class="notebooks-header">Notebooks Home</div>
+        <div class="notebooks-header">My Notebooks    <p class='notebook-count-text' v-if="the_notebooks">{{ the_notebooks.length }} notebooks</p></div>
         
         <div class="notebooks-scrolling-container">
             <div id='notebooks-scrolling-content' class="notebooks-scrolling-content">
@@ -82,9 +82,16 @@ onMounted( async () => {
     margin-left: 27px;
 }
 
+.notebooks-header {
+    font-family: montserrat;
+    font-size: 40px;
+    display: flex;
+}
+
 .notebooks-scrolling-container
 {
     width: 100%;
+    top: 40px;
     overflow-x: auto;
 }
 
@@ -92,6 +99,16 @@ onMounted( async () => {
 {
     display: flex;
     width: 200%;
+}
+
+.notebook-count-text
+{
+    font-family: montserrat;
+    font-size: 25px;
+    color: #8C909E;
+    position: relative;
+    top: -10px;
+    margin-left: 24px;
 }
 
 </style>

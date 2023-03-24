@@ -144,8 +144,9 @@ onBeforeRouteLeave(async (to, from, next) => {
 {
     font-family: montserrat;
     font-size: 26px;
+    position: relative;
     margin-left: 22px;
-    top: 18px;
+    top: 11px;
 }
 
 .note-notebook-title-container

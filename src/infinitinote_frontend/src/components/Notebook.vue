@@ -68,15 +68,19 @@ onMounted( async () => {
         </div>    
 
         <div class="notebook-cover-button">
-            <p>Notebook Cover</p>
+            <img src='/ui/add-photo-alternate.png' width="22px" height="22px" class="add-image-button" @click="add_cover()"><p>Notebook Cover</p>
         </div>
         <div class="note-add-button" @click="add_note()"><img src='/ui/add-circle.png' width="22px" height="22px" class="add-image-button" @click="add_note()"><p>Add</p></div>
-        <div class="notebook-tags-button"><p>Tags</p></div>
+        <div class="notebook-tags-button"><img src='/ui/add-tag-icon.png' width="22px" height="22px" class="add-image-button" @click="add_tags()"><p>Tags</p></div>
 
     </div>
+    <div class="notebook-note-container">
+        <div class="notebook-sidebar-left">
 
-    <div class="notes-container" v-if="the_notebook">
-        <NoteCard  v-for="note in the_notebook.notes" :note="note" v-if="the_notebook.notes" @click="open_note(note.id)"/>
+        </div>
+        <div class="notes-container" v-if="the_notebook">
+            <NoteCard  v-for="note in the_notebook.notes" :note="note" v-if="the_notebook.notes" @click="open_note(note.id)"/>
+        </div>
     </div>
 
 </div>
@@ -103,14 +107,31 @@ onMounted( async () => {
     width: 900px;
 }
 
+.notebook-note-container 
+{
+    position: relative;
+    display: flex;
+    top: 60px;
+}
+
+.notebook-sidebar-left
+{
+    position: relative;
+    width: 75px;
+    min-width: 75px;
+    height: 694px;
+    border-radius: 25px;
+    background-color: #FFFFFF;
+
+}
+
 .notes-container
 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-auto-rows: 338px;
   grid-gap: 12px;
-  top: 60px;
-  margin-left: 137px;
+  margin-left: 33px;
   position: relative;
 }
 

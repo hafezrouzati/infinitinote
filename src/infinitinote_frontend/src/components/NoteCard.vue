@@ -5,7 +5,7 @@
                 {{ note.title }}
             </div>
             <div class="note-content" v-if="note.content">
-                {{  note.content }}
+                <pre class="note-content-pre">{{  note.content }}</pre>
             </div>
         </div>
 
@@ -20,6 +20,8 @@ import { QuillEditor, Quill } from '@vueup/vue-quill'
 const props = defineProps({
   note: Object,
 });
+
+var the_note_content = props.note.content.replace(/\n/g, "<br>");
 
 onMounted( () => {
     console.log(props.note.content);
@@ -55,13 +57,20 @@ onMounted( () => {
     margin-left: 29px;
     font-family: montserrat-medium;
     font-size: 14px;
-    top: 110px;
+    top: 30px;
     color: #8C909E;
     width: 358px;
     height: 120px;
-    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.note-content-pre
+{
+    font-family: montserrat-medium;
+    font-size: 14px;
+    line-height: 160%;
+    white-space: pre-wrap;
 }
 
 </style>
