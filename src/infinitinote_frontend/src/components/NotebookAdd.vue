@@ -173,6 +173,7 @@ const router = useRouter();
 const route = useRoute();
 
 var userPrincipal = inject('userPrincipal');
+var userAuthenticated = inject('userAuthenticated');
 var backend = inject('backend');
 var isLoading = inject('isLoading');
 
