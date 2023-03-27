@@ -1,3 +1,4 @@
+//mod storage;
 
 use ic_cdk::{
     api::call,
@@ -11,6 +12,14 @@ use ic_cdk::{
 
 use ic_cdk::export::candid::{candid_method};
 use ic_cdk::export::candid::{export_service};
+
+// use crate::storage::http::{
+//     build_encodings, build_headers, create_token, error_response, streaming_strategy,
+// };
+
+// use crate::storage::types::http::{
+//     HttpRequest, HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken,
+// };
 
 use ic_cdk_macros::*;
 use std::str;
@@ -68,7 +77,7 @@ struct Notebook
 #[derive(Clone, Debug, PartialEq, Eq, CandidType, PartialOrd, Ord)]
 pub struct AssetID(pub String);
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, CandidType)]
 struct Asset 
 {
     pub id: AssetID,
@@ -633,14 +642,14 @@ async fn get_notes_for_notebook(notebook_id: String) -> Vec<Note>
 // File Upload                                  ////
 ////////////////////////////////////////////////////
 
-#[query(name="getNewAssetID")]
+#[query]
 async fn get_new_asset_id() -> String
 {
     let new_asset_id = generate_uuid().await;
     return new_asset_id;
 }
 
-#[update(name="uploadFileChunk")]
+#[update]
 fn upload_file_chunk(asset_id: String, name: String, mut data: Vec<u8>) -> ManualReply<Option<String>>
 {
     let mut error_condition = false;
@@ -648,7 +657,7 @@ fn upload_file_chunk(asset_id: String, name: String, mut data: Vec<u8>) -> Manua
 
     let principal_id = ic_cdk::api::caller();
         
-        let asset_uuid = AssetID(asset_id);
+    let asset_uuid = AssetID(asset_id);
 
         ASSET_STORE.with(|asset_store| {
             let mut asset_store_mut = asset_store.borrow_mut();
@@ -686,6 +695,42 @@ fn upload_file_chunk(asset_id: String, name: String, mut data: Vec<u8>) -> Manua
     }
 }
 
+#[query]
+fn get_asset(asset_id: String) -> Option<Asset>
+{
+    let asset_uuid = AssetID(asset_id);
+    let mut ret_val = None;
+    ASSET_STORE.with(|asset_store| {
+        let mut asset_store_mut = asset_store.borrow_mut();
+        let asset_ref = asset_store_mut.get_mut(&asset_uuid);
+        
+        if asset_ref.is_none()
+        {
+            ret_val = None;
+        }
+        else 
+        {
+            ret_val = Some(asset_ref.unwrap().clone());
+        }
+    });
+
+    return ret_val;
+}
+
+// #[query]
+// fn http_request(
+//     HttpRequest {
+//         method,
+//         url,
+//         headers: req_headers,
+//         body: _,
+//     }: HttpRequest,
+// ) -> HttpResponse {
+//     if method != "GET" {
+//         return error_response(405, "Method Not Allowed.".to_string());
+//     }
+
+// }
 
 
 
