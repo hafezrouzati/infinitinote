@@ -57,6 +57,13 @@ async function update_note()
 async function quillReady()
 {
     console.log('Quill editor is ready!');
+    document.getElementsByClassName('ql-toolbar ql-snow')[0].style.border="0px";
+    document.getElementsByClassName('ql-container ql-snow')[0].style.border="0px";
+}
+
+async function uploadAsset()
+{
+    var assetID = await backend.value.get_new_asset_id();
 
 }
 
@@ -223,6 +230,20 @@ onBeforeRouteLeave(async (to, from, next) => {
 .note-editor
 {
     height: 500px;
+}
+
+/* Editor style override */
+.ql-toolbar-override
+{
+    /* border: 1px solid #d1d5db; */
+    box-sizing: border-box;
+    font-family: 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
+    padding: 8px;
+}
+
+.ql-container-override
+{
+
 }
 
 </style>

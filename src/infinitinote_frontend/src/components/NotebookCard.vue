@@ -22,7 +22,7 @@ const props = defineProps({
   cover: String
 });
 
-var notes_text = computed(() => { if(props.notebook.notes.length > 1){return 'notes';} else return 'note'; });
+var notes_text = computed(() => { if(props.notebook.notes.length == 1){return 'note';} else return 'notes'; });
 
 </script>
 
