@@ -14,10 +14,14 @@ import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Paragraph from '@tiptap/extension-paragraph'
 import Text from '@tiptap/extension-text'
+import FontSize from 'tiptap-extension-font-size'
+import FontFamily from '@tiptap/extension-font-family'
+import TextStyle from '@tiptap/extension-text-style';
 const provider = new HocuspocusProvider({
     url: 'ws://0.0.0.0:80',
     name: 'document',
 })
+const fontFamilies = ['Arial', 'Helvetica', 'Times New Roman', 'Courier New'];
 const editor = useEditor({
     extensions: [
         StarterKit.configure({
@@ -28,8 +32,14 @@ const editor = useEditor({
             document: provider.document,
         }),
         Image,
-        Paragraph, Text,
+        FontFamily.configure({
+            fontFamilies: fontFamilies,
+        }),
+        Paragraph,
+        Text,
+        TextStyle,
         Dropcursor,
+        FontSize,
         TextAlign.configure({
             types: ['heading', 'paragraph'],
         }),
@@ -102,7 +112,6 @@ async function update_note() {
 function addImage(editorParamter) {
     const url = window.prompt('URL')
     if (url) {
-        console.log(editor)
         editorParamter.chain().focus().setImage({ src: url }).run()
     }
 }
@@ -167,6 +176,15 @@ function formatFileSize(size) {
         return (size / 1048576).toFixed(2) + ' MB';
     }
 }
+function changeFontSize(event, editorParamter) {
+    const fontSize = event.target.value;
+    editorParamter.chain().focus().setFontSize(fontSize).run();
+}
+
+function changeFontFamily(event, editorParamter) {
+    const fontSize = event.target.value;
+    editorParamter.chain().focus().setFontFamily(fontSize).run();
+}
 
 </script>
 
@@ -189,13 +207,18 @@ function formatFileSize(size) {
                         <div class="note-editor-toolbar">
                             <div class="note-editor-toolbar-formatting">
                                 <div class="custom-select">
-                                    <select>
-                                        <option value="option1">Roboto</option>
+                                    <select @change="changeFontFamily($event, editor)">
+                                        <option v-for="fontFamily in fontFamilies" :value="fontFamily" :key="fontFamily">
+                                            {{ fontFamily }}
+                                        </option>
                                     </select>
                                 </div>
                                 <div class="custom-select">
-                                    <select>
-                                        <option value="option1">14px</option>
+                                    <select @change="changeFontSize($event, editor)">
+                                        <option value="12px">12px</option>
+                                        <option value="14px">14px</option>
+                                        <option value="16px">16px</option>
+                                        <option value="18px">18px</option>
                                     </select>
                                 </div>
                                 <span></span>
@@ -205,7 +228,6 @@ function formatFileSize(size) {
                                     @click="editor.chain().focus().toggleStrike().run()">
                                 <img src="/ui/format_italic.svg" alt=""
                                     @click="editor.chain().focus().toggleItalic().run()">
-                                <img src="/ui/format_color_fill.svg" alt="">
                                 <span></span>
                                 <img src="/ui/format_align_left.svg" alt=""
                                     @click="editor.chain().focus().setTextAlign('left').run()">
