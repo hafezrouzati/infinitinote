@@ -18,7 +18,7 @@ import FontSize from 'tiptap-extension-font-size'
 import FontFamily from '@tiptap/extension-font-family'
 import TextStyle from '@tiptap/extension-text-style';
 const provider = new HocuspocusProvider({
-    url: 'ws://0.0.0.0:80',
+    url: 'ws://66.165.255.178:80',
     name: 'document',
 })
 const fontFamilies = ['Arial', 'Helvetica', 'Times New Roman', 'Courier New'];
