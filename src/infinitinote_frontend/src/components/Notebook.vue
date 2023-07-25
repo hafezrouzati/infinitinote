@@ -17,7 +17,7 @@ const notebookID = ref(route.params.notebookID);
 const openSideBar = ref(false);
 const notes = ref([
     {
-        title: 'Notebook 1',
+        title: 'NoteB 1',
         notes: [
             {
                 name: 'Note 1',
@@ -28,7 +28,7 @@ const notes = ref([
         ]
     },
     {
-        title: 'Notebook 2',
+        title: 'NoteB 2',
         notes: [
             {
                 name: 'Note 3',
@@ -39,7 +39,7 @@ const notes = ref([
         ]
     },
     {
-        title: 'Notebook 3',
+        title: 'Noteb 3',
         notes: [
             {
                 name: 'Note 6',
@@ -127,7 +127,7 @@ onMounted(async () => {
                         <span v-if="openSideBar" class="close">Close</span>
 
                     </div>
-                    <draggable v-model="notes" tag="li" group="notebook">
+                    <draggable v-model="notes" group="notebook">
                         <template #item="{ element: note }">
                             <div class="card-title">
                                 <div class="card-header" @click="note.expand = !note.expand">
@@ -188,11 +188,10 @@ onMounted(async () => {
 
 .notebook-sidebar-left {
     position: relative;
-    min-width: 40px;
     min-height: 694px;
     border-radius: 25px;
     background-color: #FFFFFF;
-    padding: 25px;
+    padding: 55px;
 
 }
 

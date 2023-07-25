@@ -2,59 +2,66 @@
     <div class="note-tag-container">
         <div class="note-tag-header">
             <p>Notebook Tags</p>
-            <span>
+            <span @click="addChip">
                 <img src="/ui/add.svg" alt="" srcset="">
-
             </span>
         </div>
         <div class="note-tag-chip-container">
-            <div class="note-tag-chip">
+            <div class="note-tag-chip" v-for="(chip, index) in chipModel" :key="index">
                 <span>
-                    swift
+                    {{ chip }}
                 </span>
-                <span>
+                <span @click="deleteChip(index)">
                     <img src="/ui/close.svg" alt="" srcset="">
                 </span>
             </div>
-            <div class="note-tag-chip">
-                <span>
-                    swift
+            <div class="note-tag-chip" v-if="addingChip">
+                <input v-model="newChip" type="text" v-focus />
+                <span @click="saveChip">
+                    <img src="/ui/tick.svg" alt="" srcset="">
                 </span>
-                <span>
+                <span @click="cancelChip">
                     <img src="/ui/close.svg" alt="" srcset="">
                 </span>
             </div>
-            <div class="note-tag-chip">
-                <span>
-                    swift
-                </span>
-                <span>
-                    <img src="/ui/close.svg" alt="" srcset="">
-                </span>
-            </div>
-            <div class="note-tag-chip">
-                <span>
-                    swift
-                </span>
-                <span>
-                    <img src="/ui/close.svg" alt="" srcset="">
-                </span>
-            </div>
-            <div class="note-tag-chip">
-                <span>
-                    swift
-                </span>
-                <span>
-                    <img src="/ui/close.svg" alt="" srcset="">
-                </span>
-            </div>
-
         </div>
     </div>
 </template>
 
-<script setup>
+
+<script>
+import { ref } from 'vue';
+
+export default {
+    setup() {
+        const chipModel = ref([]);
+        const addingChip = ref(false);
+        const newChip = ref('');
+
+        const addChip = () => {
+            addingChip.value = true;
+        };
+
+        const saveChip = () => {
+            chipModel.value.push(newChip.value);
+            newChip.value = '';
+            addingChip.value = false;
+        };
+
+        const cancelChip = () => {
+            newChip.value = '';
+            addingChip.value = false;
+        };
+
+        const deleteChip = (index) => {
+            chipModel.value.splice(index, 1);
+        };
+
+        return { chipModel, addingChip, newChip, addChip, saveChip, cancelChip, deleteChip };
+    }
+};
 </script>
+
 
 <style>
 .note-tag-container {
