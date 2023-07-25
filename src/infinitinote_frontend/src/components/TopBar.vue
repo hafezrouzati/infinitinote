@@ -140,6 +140,10 @@ onBeforeUnmount(() => {
     width: 500px;
 }
 
+.search-bar {
+    position: relative;
+}
+
 .search-bar .suggestions {
     margin-top: 10px;
     border-radius: 25px;
@@ -147,6 +151,8 @@ onBeforeUnmount(() => {
     height: 385px;
     box-shadow: 0px 4px 74px 0px rgba(0, 0, 0, 0.08);
     padding: 24px;
+    position: absolute;
+    width: 100%;
 }
 
 .suggestion .header-title {
@@ -154,6 +160,7 @@ onBeforeUnmount(() => {
     color: #2B3249;
     font-size: 14px;
 }
+
 
 .suggestion .content {
     display: flex;
