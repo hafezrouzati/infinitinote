@@ -80,7 +80,6 @@ var the_note = ref(null)
 var files = ref([])
 var the_notebook = ref(null);
 var the_note_content = ref(null);
-var myQuillEditor = ref(null);
 
 async function load_notebooks() {
     isLoading.value = true;
@@ -94,9 +93,14 @@ async function background_update_note() {
 }
 
 async function update_note() {
-    let note_content = myQuillEditor.value.getQuill().getText();
-    let note_content_delta_string = JSON.stringify(myQuillEditor.value.getQuill().getContents());
+    console.log(editor)
+    // Get the plain text content from the editor
+    const note_content = editor.value.getHTML();
 
+    // Get the delta string from the editor
+    const note_content_delta = editor.value.getJSON();
+
+    const note_content_delta_string = JSON.stringify(note_content_delta);
     let result = await backend.value.update_note(
         the_notebook.value.id,
         the_note.value.id,
@@ -128,7 +132,7 @@ function handleDrop(event) {
 onMounted(async () => {
 
     if (userAuthenticated.value == false) {
-        // router.push('/');
+        router.push('/');
     }
     else {
         console.log('load notebooks');
@@ -141,7 +145,8 @@ onMounted(async () => {
         if (the_note.value.content_delta != "") {
             try {
                 var note_content_delta = JSON.parse(the_note.value.content_delta);
-                myQuillEditor.value.getQuill().setContents(note_content_delta);
+                console.log(editor)
+                editor.value.commands.setContent(note_content_delta);
             } catch (err) {
                 console.log(err);
                 the_note_content.value = "";
@@ -246,7 +251,7 @@ function changeFontFamily(event, editorParamter) {
                         <editor-content :editor="editor" />
                         <!-- Action buttons -->
                         <div class="note-action-buttons">
-                            <button class="note-action-buttons-ok">Save note</button>
+                            <button class="note-action-buttons-ok" on-click="update_note()">Save note</button>
                             <button class="note-action-buttons-cancel">Cancel</button>
                         </div>
                     </div>

@@ -2,7 +2,7 @@
 import { inject, ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import NoteCard from './NoteCard.vue';
-
+import draggable from 'vuedraggable';
 const props = defineProps({
     notebook: Object
 });
@@ -83,7 +83,7 @@ onMounted(async () => {
     console.log(notebooks.value);
     console.log(userAuthenticated.value);
     if (userAuthenticated.value == false) {
-        // router.push('/');
+        router.push('/');
     }
     else {
         the_notebook.value = notebooks.value.find((n) => n.id == notebookID.value);
@@ -127,28 +127,36 @@ onMounted(async () => {
                         <span v-if="openSideBar" class="close">Close</span>
 
                     </div>
-                    <div class="card-title" v-for="note in notes">
-                        <div class="card-header" @click="note.expand = !note.expand">
-                            <img src="/ui/background-notebook-1.svg" alt="" srcset="">
-                            <p class="name" v-if="openSideBar">{{ note.title }}</p>
-                            <img src="/ui/arrow_circle_down.svg" alt="" v-if="openSideBar && note.expand"
-                                class="arrow-side arrow-side-down">
-                            <img src="/ui/arrow_circle_right-chapter.svg" alt="" v-if="openSideBar && !note.expand"
-                                class="arrow-side arrow-side-down">
-                        </div>
-                        <div class="card-body" v-if="openSideBar && note.expand">
-                            <div class="chapter-card" v-for="chapter in note.notes">
-                                <img src="/ui/arrow_circle_right-chapter.svg" alt="" class="arrow-side arrow-side-right">
-                                <span class="title">{{ chapter.name }}</span>
-                            </div>
-                        </div>
+                    <draggable v-model="notes" tag="li" group="notebook">
+                        <template #item="{ element: note }">
+                            <div class="card-title">
+                                <div class="card-header" @click="note.expand = !note.expand">
+                                    <img src="/ui/background-notebook-1.svg" alt="" srcset="">
+                                    <p class="name" v-if="openSideBar">{{ note.title }}</p>
+                                    <img src="/ui/arrow_circle_down.svg" alt="" v-if="openSideBar && note.expand"
+                                        class="arrow-side arrow-side-down">
+                                    <img src="/ui/arrow_circle_right-chapter.svg" alt="" v-if="openSideBar && !note.expand"
+                                        class="arrow-side arrow-side-down">
+                                </div>
+                                <div class="card-body" v-if="openSideBar && note.expand">
+                                    <div class="chapter-card" v-for="chapter in note.notes">
+                                        <img src="/ui/arrow_circle_right-chapter.svg" alt=""
+                                            class="arrow-side arrow-side-right">
+                                        <span class="title">{{ chapter.name }}</span>
+                                    </div>
+                                </div>
 
-                    </div>
+                            </div>
+                        </template>
+                    </draggable>
                 </div>
             </div>
-            <div class="notes-container" v-if="the_notebook">
-                <NoteCard v-for="note in the_notebook.notes" :note="note" v-if="the_notebook.notes"
-                    @click="open_note(note.id)" />
+            <div v-if="the_notebook">
+                <draggable v-model="the_notebook.notes" class="notes-container" group="notebook">
+                    <template #item="{ element: note }">
+                        <NoteCard :note="note" v-if="the_notebook.notes" @click="open_note(note.id)" />
+                    </template>
+                </draggable>
             </div>
         </div>
 
