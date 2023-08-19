@@ -24,6 +24,7 @@ const provider = new HocuspocusProvider({
 })
 const fontFamilies = ['Arial', 'Helvetica', 'Times New Roman', 'Courier New'];
 const editor = useEditor({
+    editorContent: '',
     extensions: [
         StarterKit.configure({
             // The Collaboration extension comes with its own history handling

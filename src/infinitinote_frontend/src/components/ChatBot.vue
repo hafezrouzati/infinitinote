@@ -22,11 +22,12 @@ import { io } from 'socket.io-client';
         prompt: question.value,
         id: "TS-1691809628841-75297",
       };
+      data.value="";
       socket.emit("request", config);
     };
 
     const cancelRequest = () => {
-      loading.value = true;
+      loading.value = false;
       socket.emit("request", {
         prompt: "/stop",
       });
