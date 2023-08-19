@@ -4,14 +4,12 @@ use ic_cdk::{
     api::call,
     api::call::ManualReply,
     api::call::CallResult,
-    export::{
-        candid::{CandidType, Deserialize, ser::ValueSerializer},
-        Principal,
-    },
 };
 
-use ic_cdk::export::candid::{candid_method};
-use ic_cdk::export::candid::{export_service};
+use candid::{Encode, Decode, CandidType, Deserialize, Principal, candid_method, export_service};
+
+//use ic_cdk::export::candid::{candid_method};
+//use ic_cdk::export::candid::{export_service};
 
 // use crate::storage::http::{
 //     build_encodings, build_headers, create_token, error_response, streaming_strategy,
@@ -29,16 +27,15 @@ use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::collections::btree_map::Entry;
 use sha256::{digest, try_digest};
-use egui::widgets::text_edit::TextEditState;
 use derive_more::{Display};
 
 ///// Storage /////
-type IdStore = BTreeMap<String, Principal>;
+type IdStore = BTreeMap<String, candid::Principal>;
 type CredentialsStore = BTreeMap<String, String>;
-type ProfileStore = BTreeMap<Principal, User>;
+type ProfileStore = BTreeMap<candid::Principal, User>;
 type AssetStore = BTreeMap<AssetID, Asset>;
-type NotebookStore = BTreeMap<Principal, BTreeMap<UUID, Notebook>>;
-type UserAssetStore = BTreeMap<Principal, AssetID>;
+type NotebookStore = BTreeMap<candid::Principal, BTreeMap<UUID, Notebook>>;
+type UserAssetStore = BTreeMap<candid::Principal, AssetID>;
 type NotebookCounter = u32;
 
 /// type definitions ////
@@ -164,11 +161,11 @@ thread_local! {
 //     }
 // }
 
-#[query(name = "__get_candid_interface_tmp_hack")]
-fn export_candid() -> String {
-    export_service!();
-    __export_service()
-}
+// #[query(name = "__get_candid_interface_tmp_hack")]
+// fn export_candid() -> String {
+//     export_service!();
+//     //__export_service()
+// }
 
 #[query]
 fn greet(name: String) -> String {
@@ -239,7 +236,7 @@ async fn generate_uuid() -> String
 {
     let mut val = String::from("error");
 
-    let management_canister = ic_cdk::export::Principal::management_canister();
+    let management_canister = candid::Principal::management_canister();
     let rnd_buffer: (Vec<u8>,) = match ic_cdk::call(management_canister, "raw_rand", ()).await {
         Ok(result) => result,
         Err(err) => {
