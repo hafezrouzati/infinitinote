@@ -20,7 +20,7 @@ import FontFamily from '@tiptap/extension-font-family'
 import TextStyle from '@tiptap/extension-text-style';
 const provider = new HocuspocusProvider({
     url: 'ws://23.111.144.10:3001',
-    name: 'document',
+    name: `document-${Math.random().toString(36).substr(2, 9)}-${Date.now()}`,
 })
 const fontFamilies = ['Arial', 'Helvetica', 'Times New Roman', 'Courier New'];
 const editor = useEditor({
@@ -90,7 +90,8 @@ async function background_update_note() {
 }
 
 async function update_note() {
-    console.log(editor)
+    console.log("hey")
+    isLoading.value = true;
     // Get the plain text content from the editor
     const note_content = editor.value.getText();
 
@@ -106,6 +107,7 @@ async function update_note() {
         note_content_delta_string,
         the_note.value.tags
     );
+    isLoading.value = false;
     console.log(result);
 }
 
@@ -163,6 +165,9 @@ onBeforeRouteLeave(async (to, from, next) => {
             await update_note();
             await load_notebooks();
         }
+        if(editor){
+            editor.value.destroy();
+        }
     }
 
     isLoading.value = false;
@@ -177,6 +182,9 @@ function formatFileSize(size) {
     } else {
         return (size / 1048576).toFixed(2) + ' MB';
     }
+}
+function back(){
+    window.history.back();
 }
 function changeFontSize(event, editorParamter) {
     const fontSize = event.target.value;
@@ -248,8 +256,8 @@ function changeFontFamily(event, editorParamter) {
                         <editor-content :editor="editor" />
                         <!-- Action buttons -->
                         <div class="note-action-buttons">
-                            <button class="note-action-buttons-ok" on-click="update_note()">Save note</button>
-                            <button class="note-action-buttons-cancel">Cancel</button>
+                            <button class="note-action-buttons-ok" @click="update_note()">Save note</button>
+                            <button class="note-action-buttons-cancel" @click="back()">Back</button>
                         </div>
                     </div>
                     <!-- Drag and drop section with file at buttom -->
