@@ -6,27 +6,22 @@
             <input type="text" class="notebook-add-title-input" v-model="notebook_title">
             <div class="notebook-add-cover-label">Notebook Cover</div>
             <div class="notebook-add-cover-container">
-                <div class="notebook-add-cover notebook-add-cover-purple">
-                    <img src="/ui/notebook-cover-purple.png">
-                </div>
-                <div class="notebook-add-cover notebook-cover-green">
-                    <img src="/ui/notebook-cover-green.png"  class="notebook-cover-image image_button">
-                </div>
-                <div class="notebook-add-cover notebook-cover-red">
-                    <img src="/ui/notebook-cover-red.png"  class="notebook-cover-image image_button">
-                </div>
-                <div class="notebook-add-cover notebook-cover-blue">
-                    <img src="/ui/notebook-cover-blue.png" class="notebook-cover-image image_button">
-                </div>
-                <div class="notebook-add-cover notebook-cover-yellow">
-                    <img src="/ui/notebook-cover-yellow.png" class="notebook-cover-image image_button">
-                </div>
-                <div class="notebook-add-cover notebook-cover-custom">
-                    <img src="/ui/notebook-cover-custom.png" class="notebook-cover-image image_button">
-                </div>
+                <div v-for="cover in covers" :key="cover.color" class="notebook-add-cover" :class="`notebook-cover-${cover.color}`" @click="selectedCover=cover;">
+                <img :src="`/ui/notebook-cover-${cover.color}.png`" class="notebook-cover-image image_button">
+                <label :for="`cover-radio-${cover.color}`" class="cover-radio-label" v-if="cover.color!='custom'">
+                    <input
+                    :id="`cover-radio-${cover.color}`"
+                    :name="`notebook-cover`"
+                    type="radio"
+                    class="cover-radio-input"
+                    :value="cover"
+                    v-model="selectedCover"
+                    >
+                </label>
+            </div>
             </div>
             <div class="notebook-add-notebook-button">
-                <img src='/ui/notebook-add-notebook.png' class="image_button" @click="$event => add_notebook()">
+                <img src='/ui/btn_add_notebook.jpg' class="image_button add_notebook_btn" @click="$event => add_notebook()">
             </div>
         </div>
         <div class="notebook-add-tags-container">
@@ -51,7 +46,15 @@
 </template>
 
 <style>
-
+.cover-radio-label{
+    position: absolute;
+    top: 5px;
+    left: 8px;
+}
+.add_notebook_btn{
+    margin: 0;
+    margin-top: 15px;
+}
 .notebook-add-page-container
 {
     margin-left: 26px;
@@ -90,13 +93,14 @@
 .notebook-add-container
 {
     width: 1134px;
-    height: 423px;
+    height: 500px;
     border-radius: 25px;
     background-color: #FFFFFF;
 }
 
 .notebook-add-cover
 {
+    position: relative;
     width: 170px;
     height: 223px;
     margin-left: 5px;
@@ -171,7 +175,15 @@ import { useRouter, useRoute } from 'vue-router';
 
 const router = useRouter();
 const route = useRoute();
-
+var covers=ref([
+        { color: 'purple' },
+        { color: 'green' },
+        { color: 'red' },
+        { color: 'blue' },
+        { color: 'yellow' },
+        { color: 'custom' }
+      ]);
+var selectedCover=ref(null)
 var userPrincipal = inject('userPrincipal');
 var userAuthenticated = inject('userAuthenticated');
 var backend = inject('backend');

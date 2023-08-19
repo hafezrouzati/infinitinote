@@ -1,11 +1,18 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { io } from 'socket.io-client';
+const props = defineProps({
+  note: Object,
+});
     const data = ref("");
     const question = ref("");
     const socket = io("http://23.111.144.10:3000/");
     const loading = ref(false);
     const sendQuestion = () => {
+      if(!question.value){
+        return
+      }
+      console.log(`${props.note.content}### Instruction:${question.value}`)
       loading.value = true;
       const config = {
         seed: -1,
@@ -19,7 +26,7 @@ import { io } from 'socket.io-client';
         debug: false,
         models: ["llama.13B"],
         model: "llama.13B",
-        prompt: question.value,
+        prompt: `${props.note.content}### Instruction:${question.value}`,
         id: "TS-1691809628841-75297",
       };
       data.value="";

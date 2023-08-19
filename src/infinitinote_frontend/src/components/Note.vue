@@ -94,7 +94,7 @@ async function update_note() {
     isLoading.value = true;
     // Get the plain text content from the editor
     const note_content = editor.value.getText();
-
+    the_note.value.content = note_content;
     // Get the delta string from the editor
     const note_content_delta = editor.value.getJSON();
 
@@ -290,7 +290,7 @@ function changeFontFamily(event, editorParamter) {
             <div class="note-editor-tag">
                 <NoteTag />
                 <div class="h-10"></div>
-                <ChatBot />
+                <ChatBot  :note="the_note"/>
             </div>
         </div>
 
