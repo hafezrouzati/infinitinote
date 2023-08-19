@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { onBeforeRouteLeave } from 'vue-router';
 import { QuillEditor } from '@vueup/vue-quill'
 import NoteTag from './NoteTag.vue';
+import ChatBot from './ChatBot.vue';
 import Collaboration from '@tiptap/extension-collaboration'
 import TextAlign from '@tiptap/extension-text-align'
 import Image from '@tiptap/extension-image'
@@ -18,7 +19,7 @@ import FontSize from 'tiptap-extension-font-size'
 import FontFamily from '@tiptap/extension-font-family'
 import TextStyle from '@tiptap/extension-text-style';
 const provider = new HocuspocusProvider({
-    url: 'ws://66.165.255.178:80',
+    url: 'ws://23.111.144.10:3001',
     name: 'document',
 })
 const fontFamilies = ['Arial', 'Helvetica', 'Times New Roman', 'Courier New'];
@@ -46,16 +47,11 @@ const editor = useEditor({
         CollaborationCursor.configure({
             provider: provider,
             user: {
-                name: 'hira-' + new Date().toLocaleTimeString(),
+                name: 'User -' + new Date().toLocaleTimeString(),
                 color: '#f783ac',
             },
         })
     ],
-    onUpdate: ({ editor }) => {
-        const json = editor.getJSON()
-        console.log(json)
-        // send the content to an API here
-    },
 })
 
 
@@ -95,7 +91,7 @@ async function background_update_note() {
 async function update_note() {
     console.log(editor)
     // Get the plain text content from the editor
-    const note_content = editor.value.getHTML();
+    const note_content = editor.value.getText();
 
     // Get the delta string from the editor
     const note_content_delta = editor.value.getJSON();
@@ -146,7 +142,7 @@ onMounted(async () => {
             try {
                 var note_content_delta = JSON.parse(the_note.value.content_delta);
                 console.log(editor)
-                editor.value.commands.setContent(note_content_delta);
+                editor.value.commands.setContent(note_content_delta || []);
             } catch (err) {
                 console.log(err);
                 the_note_content.value = "";
@@ -284,6 +280,8 @@ function changeFontFamily(event, editorParamter) {
             </div>
             <div class="note-editor-tag">
                 <NoteTag />
+                <div class="h-10"></div>
+                <ChatBot />
             </div>
         </div>
 
@@ -579,6 +577,9 @@ function changeFontFamily(event, editorParamter) {
 
 .flex-1 {
     flex: 1;
+}
+.h-10{
+    height: 20px;
 }
 
 .ql-container-override {}
