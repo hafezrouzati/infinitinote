@@ -9,13 +9,13 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-candid = "0.8.2"
-ic-cdk = "0.7.3"
-ic-cdk-macros = "0.6.0"
-serde = "1.0"
-web-sys = { version = "0.3.60", features = ["Crypto"] }
+serde = "1.0.183"
+web-sys = { version = "0.3.60" }
 js-sys = "0.3.60"
 wasm-bindgen = "0.2.83"
-sha256 = "1.1.1"
-egui = "0.21.0"
+sha256 = "=1.1.5"
 derive_more = "0.99.17"
+ic-cdk = "0.10.0"
+ic-cdk-macros = "0.7.1"
+serde_tokenstream = "0.2.0"
+candid = "0.9.3"
