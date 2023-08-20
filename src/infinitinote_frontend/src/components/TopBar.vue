@@ -1,12 +1,31 @@
 <script setup>
+import { readUIntLE } from '@dfinity/candid';
 import { ref, onMounted, computed, onBeforeUnmount, inject } from 'vue';
 var userAuthenticated = inject('userAuthenticated');
 const searchText = ref('');
-const showSuggestions = ref(false);
-const suggestions = computed(() => {
-    return 'sasa'
+const results = ref({
+    materials: [
+        {
+            name: 'Book_t.pdf',
+        }, {
+            name: 'Book_2.pdf',
+        },
+        {
+            name: 'Book_3.pdf',
+
+        }
+    ], notes: [
+        {
+            name: "note1"
+        },
+        {
+            name: "note2"
+        }
+    ]
 });
+const showSuggestions = ref(false);
 function onInput() {
+    //fetch data and set results here
     showSuggestions.value = true;
 }
 function onBlur() {
@@ -14,10 +33,7 @@ function onBlur() {
         showSuggestions.value = false;
     }, 200);
 }
-function selectSuggestion(suggestion) {
-    searchText.value = suggestion;
-    showSuggestions.value = false;
-}
+
 
 const handleClickOutside = (event) => {
     if (!document.querySelector('.search-bar').contains(event.target)) {
@@ -49,38 +65,18 @@ onBeforeUnmount(() => {
                 <div class="suggestions" v-if="showSuggestions">
                     <div class="suggestion">
                         <p class="header-title">material inside</p>
-                        <div class="content">
+                        <div class="content" v-for="material of results.materials">
                             <div class="d-flex">
                                 <img src="/ui/search-pdf.svg" alt="">
-                                <p class="name"> Book_t.pdf</p>
-                            </div>
-                            <p class="file">function declarations </p>
-                        </div>
-                        <div class="content">
-                            <div class="d-flex">
-                                <img src="/ui/search-pdf.svg" alt="">
-                                <p class="name"> Book_t.pdf</p>
-                            </div>
-                            <p class="file">function declarations </p>
-                        </div>
-                        <div class="content">
-                            <div class="d-flex">
-                                <img src="/ui/search-pdf.svg" alt="">
-                                <p class="name"> Book_t.pdf</p>
+                                <p class="name"> {{ material?.name }}</p>
                             </div>
                             <p class="file">function declarations </p>
                         </div>
                         <p class="header-title">notes</p>
-                        <div class="content">
+                        <div class="content" v-for="note of results.notes">
                             <div class="d-flex">
                                 <img src="/ui/background-notebook-1.svg" alt="">
-                                <p class="name">function declarations in swift</p>
-                            </div>
-                        </div>
-                        <div class="content">
-                            <div class="d-flex">
-                                <img src="/ui/background-notebook-1.svg" alt="">
-                                <p class="name">function declarations in swift</p>
+                                <p class="name">{{ note.name }}</p>
                             </div>
                         </div>
                     </div>
@@ -145,14 +141,17 @@ onBeforeUnmount(() => {
 }
 
 .search-bar .suggestions {
+    z-index: 1000;
     margin-top: 10px;
     border-radius: 25px;
     background: #FFF;
     height: 385px;
-    box-shadow: 0px 4px 74px 0px rgba(0, 0, 0, 0.08);
     padding: 24px;
     position: absolute;
     width: 100%;
+    border-radius: 10px;
+    box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
 }
 
 .suggestion .header-title {
