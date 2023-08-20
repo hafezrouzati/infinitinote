@@ -40,7 +40,9 @@ const handleClickOutside = (event) => {
         showSuggestions.value = false;
     }
 };
+function navigate(data, type) {
 
+}
 onMounted(() => {
     document.addEventListener('click', handleClickOutside);
 });
@@ -65,7 +67,7 @@ onBeforeUnmount(() => {
                 <div class="suggestions" v-if="showSuggestions">
                     <div class="suggestion">
                         <p class="header-title">material inside</p>
-                        <div class="content" v-for="material of results.materials">
+                        <div class="content" v-for="material of results.materials" @click="navigate(material, 'material')">
                             <div class="d-flex">
                                 <img src="/ui/search-pdf.svg" alt="">
                                 <p class="name"> {{ material?.name }}</p>
@@ -73,7 +75,7 @@ onBeforeUnmount(() => {
                             <p class="file">function declarations </p>
                         </div>
                         <p class="header-title">notes</p>
-                        <div class="content" v-for="note of results.notes">
+                        <div class="content" v-for="note of results.notes" @click="navigate(note, 'notes')">
                             <div class="d-flex">
                                 <img src="/ui/background-notebook-1.svg" alt="">
                                 <p class="name">{{ note.name }}</p>
