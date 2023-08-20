@@ -1,7 +1,8 @@
 <script setup>
-import { inject, ref, onMounted } from 'vue';
+import { inject, ref, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import NoteCard from './NoteCard.vue';
+import NoteTag from './NoteTag.vue';
 import draggable from 'vuedraggable';
 const props = defineProps({
     notebook: Object
@@ -16,12 +17,17 @@ var userAuthenticated = inject('userAuthenticated');
 const notebookID = ref(route.params.notebookID);
 const openSideBar = ref(false);
 var notebooks = inject('notebooks');
+const showTags = ref(false);
 
 var the_notebook = ref(null);
 var noteLists = ref([]);
 
 var isLoading = inject('isLoading');
-
+function onBlur() {
+    setTimeout(() => {
+        showTags.value = false;
+    }, 200);
+}
 async function add_note() {
     isLoading.value = true;
 
@@ -57,6 +63,19 @@ onMounted(async () => {
     }
 });
 
+const handleClickOutside = (event) => {
+    if (!document.querySelector('.notbook-tag-container').contains(event.target)) {
+        showTags.value = false;
+    }
+};
+
+onMounted(() => {
+    document.addEventListener('click', handleClickOutside);
+});
+
+onBeforeUnmount(() => {
+    document.removeEventListener('click', handleClickOutside);
+});
 const updateNoteBook = () => {
 };
 
@@ -80,10 +99,13 @@ const updateNote = () => {
                     class="add-image-button" @click="add_note()">
                 <p>Add</p>
             </div>
-            <div class="notebook-tags-button"><img src='/ui/add-tag-icon.png' width="22px" height="22px"
-                    class="add-image-button" @click="add_tags()">
-                <p>Tags</p>
-                <div class="note-editor-tag">
+            <div class="notbook-tag-container">
+                <div class="notebook-tags-button" @click="showTags = true"><img src='/ui/add-tag-icon.png' width="22px"
+                        height="22px" class="add-image-button">
+                    <p>Tags</p>
+
+                </div>
+                <div class="note-editor-tag note-book-tags" v-if="showTags">
                     <NoteTag />
                     <div class="h-10"></div>
                 </div>
@@ -141,6 +163,20 @@ const updateNote = () => {
 </template>
 
 <style>
+.notbook-tag-container {
+    position: relative;
+}
+
+.note-book-tags {
+    position: absolute;
+    z-index: 10000;
+    top: 60px;
+    left: -202px;
+    border-radius: 10px;
+    box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+}
+
 .notebook-container {
     margin-left: 27px;
     top: 54px;
