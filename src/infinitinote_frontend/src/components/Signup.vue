@@ -129,11 +129,11 @@
 
 .signup-container .left img {
     width: 1034px;
-    height: 498px;
+    height: 654px;
     max-width: unset;
     max-height: unset;
     border-radius: 30px;
-    margin-top: -91px;
+    margin-top: -111px;
 
 }
 
