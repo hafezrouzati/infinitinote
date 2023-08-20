@@ -19,9 +19,11 @@ import FontSize from 'tiptap-extension-font-size'
 import FontFamily from '@tiptap/extension-font-family'
 import TextStyle from '@tiptap/extension-text-style';
 import { isProxy, toRaw } from 'vue';
+const router = useRouter();
+const route = useRoute();
 const provider = new HocuspocusProvider({
     url: 'ws://23.111.144.10:3001',
-    name: `document-${Math.random().toString(36).substr(2, 9)}-${Date.now()}`,
+    name: `document-${route.params.noteID}}`,
 })
 const fontFamilies = ['Arial', 'Helvetica', 'Times New Roman', 'Courier New'];
 const editor = useEditor({
@@ -63,8 +65,6 @@ const props = defineProps({
     note: Object
 });
 
-const router = useRouter();
-const route = useRoute();
 
 var userAuthenticated = inject('userAuthenticated');
 var backend = inject('backend');
@@ -133,7 +133,7 @@ function readFileInChunks(assetID, file) {
         const blob = file.slice(offset, offset + chunkSize);
         const reader = new FileReader();
 
-        reader.onload = function(event) {
+        reader.onload = function (event) {
             console.log("onload file");
             console.log(event.target.result);
 
@@ -148,7 +148,7 @@ function readFileInChunks(assetID, file) {
             }
         };
 
-        reader.onerror = function(event) {
+        reader.onerror = function (event) {
             console.error('An error occurred:', event.target.error);
         };
 
@@ -158,15 +158,14 @@ function readFileInChunks(assetID, file) {
     readNextChunk();
 }
 
-async function processChunk(assetID, fileName, data)
-{
+async function processChunk(assetID, fileName, data) {
     console.log(data);
     var uint8View = new Uint8Array(data);
     console.log("uint");
     console.log(uint8View);
     console.log(fileName);
     console.log(assetID);
-    
+
     await backend.value.upload_file_chunk(assetID, fileName, uint8View);
 }
 
@@ -181,8 +180,7 @@ async function handleDrop(event) {
         console.log(files.value);
     }
 
-    for (let i = 0; i < fileList.length; i++)
-    {
+    for (let i = 0; i < fileList.length; i++) {
         const file = fileList[i];
         var assetID = await backend.value.get_new_asset_id();
         console.log(file);
@@ -202,11 +200,10 @@ onMounted(async () => {
         the_notebook.value = notebooks.value.find((n) => n.id == notebookID.value);
 
         the_note.value = the_notebook.value.notes.find((n) => n.id == noteID.value);
-        
+
         console.log(the_note.value);
 
-        if (the_note.value.attachments != null)
-        {
+        if (the_note.value.attachments != null) {
             attachments.value = the_note.value.attachments;
 
             for (let i = 0; i < attachments.value.length; i++) {
@@ -219,10 +216,9 @@ onMounted(async () => {
                 console.log(attachment);
             }
         }
-        else 
-        {
+        else {
             attachments.value = [];
-        }        
+        }
 
         if (the_note.value.content_delta != "") {
             try {
@@ -248,7 +244,7 @@ onBeforeRouteLeave(async (to, from, next) => {
             await update_note();
             await load_notebooks();
         }
-        if(editor){
+        if (editor) {
             editor.value.destroy();
         }
     }
@@ -266,7 +262,7 @@ function formatFileSize(size) {
         return (size / 1048576).toFixed(2) + ' MB';
     }
 }
-function back(){
+function back() {
     window.history.back();
 }
 function changeFontSize(event, editorParamter) {
@@ -373,7 +369,7 @@ function changeFontFamily(event, editorParamter) {
             <div class="note-editor-tag">
                 <NoteTag />
                 <div class="h-10"></div>
-                <ChatBot  :note="the_note"/>
+                <ChatBot :note="the_note" />
             </div>
         </div>
 
@@ -670,7 +666,8 @@ function changeFontFamily(event, editorParamter) {
 .flex-1 {
     flex: 1;
 }
-.h-10{
+
+.h-10 {
     height: 20px;
 }
 

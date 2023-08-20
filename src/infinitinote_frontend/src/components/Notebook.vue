@@ -53,15 +53,15 @@ onMounted(async () => {
     }
     else {
         the_notebook.value = notebooks.value.find((n) => n.id == notebookID.value);
-        noteLists.value=the_notebook.value.notes
+        noteLists.value = the_notebook.value.notes
     }
 });
 
 const updateNoteBook = () => {
-    };
+};
 
-    const updateNote = () => {
-    };
+const updateNote = () => {
+};
 </script>
 
 <template>
@@ -83,6 +83,10 @@ const updateNoteBook = () => {
             <div class="notebook-tags-button"><img src='/ui/add-tag-icon.png' width="22px" height="22px"
                     class="add-image-button" @click="add_tags()">
                 <p>Tags</p>
+                <div class="note-editor-tag">
+                    <NoteTag />
+                    <div class="h-10"></div>
+                </div>
             </div>
 
         </div>
@@ -98,45 +102,41 @@ const updateNoteBook = () => {
                         <span v-if="openSideBar" class="close">Close</span>
 
                     </div>
-                            <div class="card-title" v-for="notebook in notebooks">
-                                <div class="card-header" @click="notebook.expand = !notebook.expand">
-                                    <img src="/ui/background-notebook-1.svg" alt="" srcset="">
-                                    <p class="name" v-if="openSideBar">{{ notebook.title }}</p>
-                                    <img src="/ui/arrow_circle_down.svg" alt="" v-if="openSideBar && notebook.expand"
-                                        class="arrow-side arrow-side-down">
-                                    <img src="/ui/arrow_circle_right-chapter.svg" alt="" v-if="openSideBar && !notebook.expand"
-                                        class="arrow-side arrow-side-down">
-                                </div>
-                                <div class="card-body" v-if="openSideBar && notebook.expand">
+                    <div class="card-title" v-for="notebook in notebooks">
+                        <div class="card-header" @click="notebook.expand = !notebook.expand">
+                            <img src="/ui/background-notebook-1.svg" alt="" srcset="">
+                            <p class="name" v-if="openSideBar">{{ notebook.title }}</p>
+                            <img src="/ui/arrow_circle_down.svg" alt="" v-if="openSideBar && notebook.expand"
+                                class="arrow-side arrow-side-down">
+                            <img src="/ui/arrow_circle_right-chapter.svg" alt="" v-if="openSideBar && !notebook.expand"
+                                class="arrow-side arrow-side-down">
+                        </div>
+                        <div class="card-body" v-if="openSideBar && notebook.expand">
 
-                                <draggable v-model="notebook.notes" group="notebook"  @end="updateNoteBook">
-                                    <template #item="{ element: chapter }">
-                                        <div class="chapter-card" >
-                                            <img src="/ui/arrow_circle_right-chapter.svg" alt=""
-                                                class="arrow-side arrow-side-right">
-                                            <span class="title">{{ chapter.title }}</span>
-                                         </div>
-                                    </template>
-                                </draggable>
-                            </div>
+                            <draggable v-model="notebook.notes" group="notebook" @end="updateNoteBook">
+                                <template #item="{ element: chapter }">
+                                    <div class="chapter-card">
+                                        <img src="/ui/arrow_circle_right-chapter.svg" alt=""
+                                            class="arrow-side arrow-side-right">
+                                        <span class="title">{{ chapter.title }}</span>
+                                    </div>
+                                </template>
+                            </draggable>
+                        </div>
 
 
-                            </div>
+                    </div>
                 </div>
             </div>
             <div v-if="noteLists">
                 <draggable v-model="noteLists" class="notes-container" group="notebook" @end="updateNote">
                     <template #item="{ element: note }">
-                        <NoteCard :note="note"  @click="open_note(note.id)" />
+                        <NoteCard :note="note" @click="open_note(note.id)" />
                     </template>
                 </draggable>
             </div>
         </div>
 
-    </div>
-    <div class="note-editor-tag">
-        <NoteTag />
-        <div class="h-10"></div>
     </div>
 </template>
 
