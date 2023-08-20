@@ -30,10 +30,26 @@
 
 
 <script>
-import { ref } from 'vue';
+import { inject, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+
+
+
 
 export default {
     setup() {
+        const router = useRouter();
+        const route = useRoute();
+
+        var backend = inject('backend');
+        
+        var noteID = ref(route.params.noteID);
+        var notebookID = ref(route.params.notebookID);
+
+        console.log(notebookID.value);
+        console.log("NOTE ID");
+            console.log(noteID.value);
+        
         const chipModel = ref([]);
         const addingChip = ref(false);
         const newChip = ref('');
@@ -42,8 +58,20 @@ export default {
             addingChip.value = true;
         };
 
-        const saveChip = () => {
+        const saveChip = async () => {
             chipModel.value.push(newChip.value);
+            console.log("Save CHIP");
+            console.log(notebookID.value);
+            console.log(noteID.value);
+            if (noteID.value == null)
+            {
+                await backend.value.add_tag_to_notebook(notebookID.value, newChip.value);
+            }
+
+            if (noteID.value != null)
+            {
+                await backend.value.add_tag_to_note(notebookID.value, noteID.value, newChip.value);
+            }
             newChip.value = '';
             addingChip.value = false;
         };

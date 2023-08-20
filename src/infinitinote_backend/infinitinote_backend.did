@@ -12,19 +12,27 @@ type Notebook = record {
     "title": text;
     "notes": vec Note;
     "tags": vec text;
-}
+};
+
+type Asset = record {
+    "id" : text;
+    "filename": text;
+    "bytes" : vec nat8;
+};
 
 service : {
     "get_notebooks_for_principal": () -> (vec Notebook);
     "create_notebook": (text) -> (text);
     "add_notebook_for_principal": (principal_string: text, notebook_title: text) -> (text);
+    "add_tag_to_note": ( notebook_id: text, note_id: text, tag: text ) -> ();
     "add_tag_to_notebook": (notebook_id: text, tag: text) -> (text); 
     "get_tags_for_notebook": (notebook_id: text) -> (vec text);
     "add_note_to_notebook": (notebook_id: text, note_title: text, note_content: text, note_content_delta: text, note_tags: vec text) -> (text);
-    "update_note": (notebook_id: text, note_id: text, note_title: text, note_content: text, note_content_delta: text, note_tags: vec text) -> (text);
+    "update_note": (notebook_id: text, note_id: text, note_title: text, note_content: text, note_content_delta: text, note_tags: vec text, note_attachments: vec text) -> (text);
     "get_notes_for_notebook": (notebook_id: text) -> (vec Note);
     "get_new_asset_id": () -> (text);
-    "upload_file_chunk": (asset_id: text, asset_name: text, data: vec text) -> (text);
+    "get_asset": (asset_id: text) -> (Asset);
+    "upload_file_chunk": (asset_id: text, asset_name: text, data: vec nat8) -> (text);
     "greet": (text) -> (text) query;
     "test_greet": (text) -> (text) query;
     "test_principal": () -> (text) query;

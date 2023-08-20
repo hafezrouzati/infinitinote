@@ -1,5 +1,7 @@
 //mod storage;
 
+use std::fmt;
+
 use ic_cdk::{
     api::call,
     api::call::ManualReply,
@@ -71,8 +73,14 @@ struct Notebook
     pub tags: Vec<String>
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, CandidType, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, CandidType, Default, Deserialize)]
 pub struct AssetID(pub String);
+
+impl fmt::Display for AssetID {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 #[derive(Clone, Debug, CandidType)]
 struct Asset 
@@ -433,8 +441,80 @@ async fn add_tag_to_notebook(notebook_id: String, tag: String) -> String
     return format!("Added Tag {}", the_tag);
 }
 
+#[update(name="add_tag_to_note")]
+async fn add_tag_to_note(notebook_id: String, note_id: String, tag: String) -> String
+{
+    let principal_id = ic_cdk::api::caller();
+    let nb_id = UUID(notebook_id);
+    let n_id = UUID(note_id);
+    let mut error_condition = false;
+    let the_tag = tag.clone();
+
+    NOTEBOOK_STORE.with(|notebook_store| {
+        let mut notebook_store_mut = notebook_store.borrow_mut();
+        let principal_notebooks = notebook_store_mut.get(&principal_id);
+
+        if principal_notebooks.is_none()
+        {
+            error_condition = true;
+        }
+
+        if principal_notebooks.is_some()
+        {
+            let mut notebooks_mut = notebook_store_mut.get_mut(&principal_id).unwrap();
+            
+            let notebook = notebooks_mut.entry(nb_id);
+                notebook.and_modify(|n| {
+                    if let Some(note) = n.notes.iter_mut().find(|note| note.id == n_id) {
+                        ic_cdk::println!("adding tag");
+                        note.tags.push(tag);
+                }
+            });
+        }
+
+    });
+
+    if error_condition
+    {
+        return "Invalid note ID".to_string();
+    }
+
+    return format!("Added Tag {}", the_tag);
+}
+
 #[query(name="get_tags_for_notebook")]
 async fn get_tags_for_notebook(notebook_id: String) -> Vec<String>
+{
+    let principal_id = ic_cdk::api::caller();
+    let nid = UUID(notebook_id);
+    let mut error_condition = false;
+    let mut ret_value = Vec::<String>::new();
+    ret_value.push("Error".to_string());
+
+    NOTEBOOK_STORE.with(|notebook_store| {
+        let mut notebook_store_mut = notebook_store.borrow_mut();
+        let principal_notebooks = notebook_store_mut.get(&principal_id);
+
+        if principal_notebooks.is_none()
+        {
+            error_condition = true;
+        }
+
+        if principal_notebooks.is_some()
+        {
+            let notebooks_mut = notebook_store_mut.get_mut(&principal_id).unwrap();
+            let notebook = notebooks_mut.entry(nid);
+            notebook.and_modify(|n|
+                ret_value = n.tags.clone()
+            );
+        }   
+    });
+
+    return ret_value;
+}
+
+#[query(name="get_tags_for_note")]
+async fn get_tags_for_note(notebook_id: String, note_id: String) -> Vec<String>
 {
     let principal_id = ic_cdk::api::caller();
     let nid = UUID(notebook_id);
@@ -547,9 +627,11 @@ async fn add_note_to_notebook(notebook_id: String, note_title: String, note_cont
 }
 
 #[update(name="update_note")]
-async fn update_note(notebook_id: String, note_id: String, note_title: String, note_content: String, note_content_delta: String, note_tags: Vec<String>) -> String
+async fn update_note(notebook_id: String, note_id: String, note_title: String, note_content: String, note_content_delta: String, note_tags: Vec<String>, note_attachments: Vec<AssetID>) -> String
 {
     let mut principal_id = ic_cdk::api::caller().clone();
+
+
 
     if note_id == ""
     {
@@ -580,12 +662,14 @@ async fn update_note(notebook_id: String, note_id: String, note_title: String, n
                 let note_index = n.notes.iter().position(|note| note.id == the_note_id.clone()).unwrap();
                 let old_note = &n.notes[note_index];
 
+                ic_cdk::println!("note attachments {}", note_attachments.len());
+
                 let note  = Note { 
                     id: the_note_id,
                     title: note_title,
                     content: note_content,
                     content_delta: note_content_delta,
-                    attachments: old_note.attachments.clone(),
+                    attachments: note_attachments,
                     tags: note_tags
                 };
 
@@ -639,7 +723,7 @@ async fn get_notes_for_notebook(notebook_id: String) -> Vec<Note>
 // File Upload                                  ////
 ////////////////////////////////////////////////////
 
-#[query]
+#[update]
 async fn get_new_asset_id() -> String
 {
     let new_asset_id = generate_uuid().await;
@@ -647,12 +731,12 @@ async fn get_new_asset_id() -> String
 }
 
 #[update]
-fn upload_file_chunk(asset_id: String, name: String, mut data: Vec<u8>) -> ManualReply<Option<String>>
+fn upload_file_chunk(asset_id: String, name: String, mut data: Vec<u8>) -> String
 {
     let mut error_condition = false;
     let mut _error_message = "";
 
-    let principal_id = ic_cdk::api::caller();
+    let principal_id = ic_cdk::api::caller().clone();
         
     let asset_uuid = AssetID(asset_id);
 
@@ -681,33 +765,41 @@ fn upload_file_chunk(asset_id: String, name: String, mut data: Vec<u8>) -> Manua
                     }
                 });
 
-    if error_condition == false
-    {
-        //Ok(asset.bytes.len())
-        return ManualReply::one(Some("OK"));
-    }
-    else 
-    {
-        return ManualReply::one(Some("Error uploading chunk {_errorMessage}"));
-    }
+        if error_condition
+        {
+            return format!("Failed to add attachment");
+        }
+        else {
+            return format!("Added chunk for asset {} ", asset_uuid);
+        }
 }
 
 #[query]
-fn get_asset(asset_id: String) -> Option<Asset>
+fn get_asset(asset_id: String) -> Asset
 {
     let asset_uuid = AssetID(asset_id);
-    let mut ret_val = None;
+    let empty_vec: Vec<u8> = Vec::new();
+    let mut ret_val = Asset {
+        id : AssetID("0".to_string()),
+        filename: "0".to_string(),
+        bytes: empty_vec
+    };
+
     ASSET_STORE.with(|asset_store| {
         let mut asset_store_mut = asset_store.borrow_mut();
         let asset_ref = asset_store_mut.get_mut(&asset_uuid);
         
         if asset_ref.is_none()
         {
-            ret_val = None;
+
         }
         else 
         {
-            ret_val = Some(asset_ref.unwrap().clone());
+            let asset_clone = asset_ref.unwrap().clone();
+            
+            ic_cdk::println!("asset length {}", asset_clone.filename);
+            
+            ret_val = asset_clone;
         }
     });
 

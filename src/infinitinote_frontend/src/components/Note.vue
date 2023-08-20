@@ -18,6 +18,7 @@ import Text from '@tiptap/extension-text'
 import FontSize from 'tiptap-extension-font-size'
 import FontFamily from '@tiptap/extension-font-family'
 import TextStyle from '@tiptap/extension-text-style';
+import { isProxy, toRaw } from 'vue';
 const provider = new HocuspocusProvider({
     url: 'ws://23.111.144.10:3001',
     name: `document-${Math.random().toString(36).substr(2, 9)}-${Date.now()}`,
@@ -77,6 +78,7 @@ var the_note = ref(null)
 var files = ref([])
 var the_notebook = ref(null);
 var the_note_content = ref(null);
+var attachments = ref(null);
 
 async function load_notebooks() {
     isLoading.value = true;
@@ -98,6 +100,9 @@ async function update_note() {
     // Get the delta string from the editor
     const note_content_delta = editor.value.getJSON();
 
+    console.log("attachments");
+    console.log(attachments.value);
+
     const note_content_delta_string = JSON.stringify(note_content_delta);
     let result = await backend.value.update_note(
         the_notebook.value.id,
@@ -105,7 +110,8 @@ async function update_note() {
         the_note.value.title,
         note_content,
         note_content_delta_string,
-        the_note.value.tags
+        the_note.value.tags,
+        attachments.value
     );
     isLoading.value = false;
     console.log(result);
@@ -119,13 +125,69 @@ function addImage(editorParamter) {
     }
 }
 
-function handleDrop(event) {
+function readFileInChunks(assetID, file) {
+    const chunkSize = 1.8 * 1024 * 1024; // 1.8 MB in bytes
+    let offset = 0;
+
+    function readNextChunk() {
+        const blob = file.slice(offset, offset + chunkSize);
+        const reader = new FileReader();
+
+        reader.onload = function(event) {
+            console.log("onload file");
+            console.log(event.target.result);
+
+            processChunk(assetID, file.name, event.target.result);
+
+            offset += chunkSize;
+            if (offset < file.size) {
+                readNextChunk();
+            } else {
+                console.log('File reading finished.');
+
+            }
+        };
+
+        reader.onerror = function(event) {
+            console.error('An error occurred:', event.target.error);
+        };
+
+        reader.readAsArrayBuffer(blob);
+    }
+
+    readNextChunk();
+}
+
+async function processChunk(assetID, fileName, data)
+{
+    console.log(data);
+    var uint8View = new Uint8Array(data);
+    console.log("uint");
+    console.log(uint8View);
+    console.log(fileName);
+    console.log(assetID);
+    
+    await backend.value.upload_file_chunk(assetID, fileName, uint8View);
+}
+
+async function handleDrop(event) {
     event.preventDefault();
     const fileList = event.dataTransfer.files;
 
     for (let i = 0; i < fileList.length; i++) {
         const file = fileList[i];
+        console.log(file);
         files.value.push(file);
+        console.log(files.value);
+    }
+
+    for (let i = 0; i < fileList.length; i++)
+    {
+        const file = fileList[i];
+        var assetID = await backend.value.get_new_asset_id();
+        console.log(file);
+        readFileInChunks(assetID, file);
+        attachments.value.push(assetID);
     }
 }
 onMounted(async () => {
@@ -138,8 +200,29 @@ onMounted(async () => {
         isLoading.value = true;
         await load_notebooks();
         the_notebook.value = notebooks.value.find((n) => n.id == notebookID.value);
-        console.log(the_notebook.value);
+
         the_note.value = the_notebook.value.notes.find((n) => n.id == noteID.value);
+        
+        console.log(the_note.value);
+
+        if (the_note.value.attachments != null)
+        {
+            attachments.value = the_note.value.attachments;
+
+            for (let i = 0; i < attachments.value.length; i++) {
+                console.log("getting attachment");
+                var attachmentID = attachments.value[i];
+                console.log(typeof attachmentID);
+                var attachment = await backend.value.get_asset(attachmentID);
+                var file = new File(attachment.bytes, attachment.filename);
+                files.value.push(file);
+                console.log(attachment);
+            }
+        }
+        else 
+        {
+            attachments.value = [];
+        }        
 
         if (the_note.value.content_delta != "") {
             try {

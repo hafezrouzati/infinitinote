@@ -134,6 +134,10 @@ const updateNoteBook = () => {
         </div>
 
     </div>
+    <div class="note-editor-tag">
+        <NoteTag />
+        <div class="h-10"></div>
+    </div>
 </template>
 
 <style>
