@@ -34,6 +34,7 @@ async function onInput() {
     //fetch data and set results here
     var notes_search_results = await backend.value.search_notes_by_tag(searchText.value);
     var notebooks_search_results = await backend.value.search_notebooks_by_tag(searchText.value);
+    results.value.files = [];
     results.value.notes = [];
     results.value.notebooks = [];
     results.value.notes = notes_search_results;
@@ -95,7 +96,7 @@ function navigateToNotebook() {
                         <p class="header-title">files</p>
                         <div class="content" v-for="file of results.files" @click="navigate(file, 'file')">
                             <div class="d-flex">
-                                <img src="/ui/search-pdf.svg" alt="">
+                                <img src="/ui/search-pdf.svg" alt="" class="search-result">
                                 <p class="name"> {{ material?.name }}</p>
                             </div>
                             <p class="file"></p>
@@ -103,15 +104,15 @@ function navigateToNotebook() {
                         <p class="header-title">notebooks</p>
                         <div class="content" v-for="notebook of results.notebooks" @click="navigate(notebook, 'notebooks')">
                             <div class="d-flex">
-                                <img src="/ui/background-notebook-1.svg" alt="">
-                                <p class="name">{{ notebook.title }}</p>
+                                <img src="/ui/background-notebook-1.svg" alt="" class="search-result">
+                                <p class="name search-result">{{ notebook.title }}</p>
                             </div>
                         </div>
                         <p class="header-title">notes</p>
                         <div class="content" v-for="note of results.notes" @click="navigate(note, 'notes')">
                             <div class="d-flex">
-                                <img src="/ui/background-notebook-1.svg" alt="">
-                                <p class="name">{{ note.title }}</p>
+                                <img src="/ui/background-notebook-1.svg" alt="" class="search-result">
+                                <p class="name search-result">{{ note.title }}</p>
                             </div>
                         </div>
                     </div>
@@ -187,6 +188,11 @@ function navigateToNotebook() {
     border-radius: 10px;
     box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(10px);
+}
+
+.search-result
+{
+    cursor: pointer;
 }
 
 .suggestion .header-title {
