@@ -17,7 +17,10 @@ const results = ref({
             name: 'Book_3.pdf',
 
         }
-    ], notes: [
+    ], notebooks: [
+        {}
+    ],
+    notes: [
         {
             name: "note1"
         },
@@ -32,7 +35,9 @@ async function onInput() {
     var notes_search_results = await backend.value.search_notes_by_tag(searchText.value);
     var notebooks_search_results = await backend.value.search_notebooks_by_tag(searchText.value);
     results.value.notes = [];
+    results.value.notebooks = [];
     results.value.notes = notes_search_results;
+    results.value.notebooks = notebooks_search_results;
 
     showSuggestions.value = true;
 }
@@ -54,8 +59,8 @@ function navigate(data, type) {
         case 'notes':
             router.push(`/note/${data.notebook_id}/${data.id}/`);
             break;
-        case '':
-
+        case 'notebooks':
+            router.push(`/notebook/${data.notebook_id}`);
             break;
 
         default:
@@ -87,13 +92,20 @@ function navigateToNotebook() {
                 </div>
                 <div class="suggestions" v-if="showSuggestions">
                     <div class="suggestion">
-                        <p class="header-title">material inside</p>
+                        <p class="header-title">files</p>
                         <div class="content" v-for="file of results.files" @click="navigate(file, 'file')">
                             <div class="d-flex">
                                 <img src="/ui/search-pdf.svg" alt="">
                                 <p class="name"> {{ material?.name }}</p>
                             </div>
-                            <p class="file">function declarations </p>
+                            <p class="file"></p>
+                        </div>
+                        <p class="header-title">notebooks</p>
+                        <div class="content" v-for="notebook of results.notebooks" @click="navigate(notebook, 'notebooks')">
+                            <div class="d-flex">
+                                <img src="/ui/background-notebook-1.svg" alt="">
+                                <p class="name">{{ notebook.title }}</p>
+                            </div>
                         </div>
                         <p class="header-title">notes</p>
                         <div class="content" v-for="note of results.notes" @click="navigate(note, 'notes')">

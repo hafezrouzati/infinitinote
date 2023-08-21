@@ -979,6 +979,8 @@ fn search_notebooks_by_tag(tag: String) -> Vec<SearchResult>
                         filetype : "".to_string(),
                         result_type : "notebook".to_string()
                     };
+
+                    search_results.push(search_result);
                 }
             }
         
