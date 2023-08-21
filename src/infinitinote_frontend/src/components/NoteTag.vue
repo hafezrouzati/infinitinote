@@ -43,10 +43,6 @@ var noteID = ref(route.params.noteID);
 var notebookID = ref(route.params.notebookID);
 var the_note = inject('the_note');
 
-console.log(notebookID.value);
-console.log("NOTE ID");
-console.log(noteID.value);
-
 var notebooks = inject('notebooks');
 var the_notebook = ref(null);
 var the_note = ref(null);
@@ -59,12 +55,21 @@ onMounted(async () => {
 
     the_notebook.value = notebooks.value.find((n) => n.id == notebookID.value);
     the_note.value = the_notebook.value.notes.find((n) => n.id == noteID.value);
-    console.log(the_note.value);
 
     function loadTagsModel() {
-        for (let i = 0; i < the_note.value.tags.length; i++)
+        if (route.path.includes('notebook'))
         {
-            chipModel.value.push(the_note.value.tags[i]);
+            for (let i = 0; i < the_notebook.value.tags.length; i++)
+            {
+                chipModel.value.push(the_notebook.value.tags[i]);
+            }
+        }
+        else
+        {
+            for (let i = 0; i < the_note.value.tags.length; i++)
+            {
+                chipModel.value.push(the_note.value.tags[i]);
+            }
         }
     };
 
@@ -79,15 +84,11 @@ onMounted(async () => {
 
         async function saveChip() {
             chipModel.value.push(newChip.value);
-            console.log("Save CHIP");
-            console.log(notebookID.value);
-            console.log(noteID.value);
-            if (noteID.value == null)
+            if (route.path.includes('notebook'))
             {
                 await backend.value.add_tag_to_notebook(notebookID.value, newChip.value);
-            }
-
-            if (noteID.value != null)
+            } 
+            else 
             {
                 await backend.value.add_tag_to_note(notebookID.value, noteID.value, newChip.value);
             }
@@ -100,11 +101,21 @@ onMounted(async () => {
             addingChip.value = false;
         };
 
-        function deleteChip(index){
-            chipModel.value.splice(index, 1);
+        async function deleteChip(index){
+            var removed_tag = chipModel.value.splice(index, 1);
+            if (route.path.includes('notebook'))
+            {
+                await backend.value.remove_tag_from_notebook(notebookID.value, removed_tag[0]);
+                var tag_index = the_notebook.value.tags.indexOf(removed_tag[0]);
+                the_notebook.value.tags.splice(tag_index, 1);
+            }
+            else 
+            {
+                await backend.value.remove_tag_from_note(notebookID.value, noteID.value, removed_tag[0]);
+                var tag_index = the_note.value.tags.indexOf(removed_tag[0]);
+                the_note.value.tags.splice(tag_index, 1);
+            }
         };
-
-        //return { chipModel, addingChip, newChip, addChip, saveChip, cancelChip, deleteChip };
 </script>
 
 
