@@ -1,5 +1,105 @@
+
+<template>
+    <div class='note-container'>
+        <div class='note-header' v-if="the_notebook">
+            <div class='note-notebook-title-container' v-if="the_notebook">
+                <p class='note-notebook-title'>{{ the_notebook.title }}</p>
+            </div>
+            <div class='separator'>/</div>
+            <div class='note-note-title-container'>
+                <input type='text' class='note-title-input' v-model='the_note.title' v-if="the_note">
+            </div>
+        </div>
+        <div class='note-content-container'>
+            <div class="flex-1">
+                <div class="note-editor-container">
+                    <div class='note-editor'>
+                        <!-- Formatting Section -->
+                        <div class="note-editor-toolbar">
+                            <div class="note-editor-toolbar-formatting">
+                                <div class="custom-select">
+                                    <select @change="changeFontFamily($event, editor)">
+                                        <option v-for="fontFamily in fontFamilies" :value="fontFamily" :key="fontFamily">
+                                            {{ fontFamily }}
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="custom-select">
+                                    <select @change="changeFontSize($event, editor)">
+                                        <option value="12px">12px</option>
+                                        <option value="14px">14px</option>
+                                        <option value="16px">16px</option>
+                                        <option value="18px">18px</option>
+                                    </select>
+                                </div>
+                                <span></span>
+                                <img src="/ui/format_bold.svg" alt="" class="m-0"
+                                    @click="editor.chain().focus().toggleBold().run()">
+                                <img src="/ui/format_underlined.svg" alt=""
+                                    @click="editor.chain().focus().toggleStrike().run()">
+                                <img src="/ui/format_italic.svg" alt=""
+                                    @click="editor.chain().focus().toggleItalic().run()">
+                                <span></span>
+                                <img src="/ui/format_align_left.svg" alt=""
+                                    @click="editor.chain().focus().setTextAlign('left').run()">
+                                <img src="/ui/format_align_center.svg" alt=""
+                                    @click="editor.chain().focus().setTextAlign('center').run()">
+                                <img src="/ui/format_align_right.svg" alt=""
+                                    @click="editor.chain().focus().setTextAlign('right').run()">
+                                <span></span>
+                                <img src="/ui/add_photo_alternate.svg" alt="" @click="addImage(editor)">
+                            </div>
+                            <div class="note-editor-toolbar-share-icon">
+                                <img src="/ui/share.svg" alt="">
+                            </div>
+                        </div>
+                        <!-- <QuillEditor theme='snow' ref="myQuillEditor" v-model:content="the_note_content" @ready="$event => quillReady()"/> -->
+                        <editor-content :editor="editor" />
+                        <!-- Action buttons -->
+                        <div class="note-action-buttons">
+                            <button class="note-action-buttons-ok" @click="update_note()">Save note</button>
+                            <button class="note-action-buttons-cancel" @click="back()">Back</button>
+                        </div>
+                    </div>
+                    <!-- Drag and drop section with file at buttom -->
+                    <div class="note-drag-drop">
+                        <div class="note-drag-drop-container" @dragover.prevent @drop="handleDrop">
+                            <div class="note-drag-drop-content">
+                                <div>
+                                    <img src="/ui/document-text.svg" alt="">
+                                </div>
+                                <div class="note-drag-drop-text">
+                                    <p>Drag & Drop your files here </p>
+                                    <p>Available format: pdf, xls, txt</p>
+                                </div>
+                            </div>
+
+                        </div>
+                        <div class="note-drag-drop-files">
+                            <div class="note-drag-drop-file" v-for="file in files" :key="file.name">
+                                <img class="file-type" src="/ui/document-text.svg" alt="" srcset="">
+                                <div>
+                                    <p>{{ file.name }}</p>
+                                    <p>{{ formatFileSize(file.size) }}</p>
+                                </div>
+                                <img class="delete" src="/ui/scan_delete.svg" alt="" srcset="" @click="removeFile(file)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="note-editor-tag">
+                <NoteTag ref="note_tags_comp" @childMounted="onChildMounted" />
+                <div class="h-10"></div>
+                <ChatBot :note="the_note" />
+            </div>
+        </div>
+
+    </div>
+</template>
+
 <script setup>
-import { inject, ref, onMounted } from 'vue';
+import { inject, ref, provide, onMounted, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { onBeforeRouteLeave } from 'vue-router';
 import { QuillEditor } from '@vueup/vue-quill'
@@ -79,6 +179,9 @@ var files = ref([])
 var the_notebook = ref(null);
 var the_note_content = ref(null);
 var attachments = ref(null);
+var note_tags_comp = ref(null);
+
+provide("the_note", the_note);
 
 async function load_notebooks() {
     isLoading.value = true;
@@ -202,6 +305,9 @@ onMounted(async () => {
         the_note.value = the_notebook.value.notes.find((n) => n.id == noteID.value);
 
         console.log(the_note.value);
+        console.log(the_note.value.tags);
+
+        await nextTick();
 
         if (the_note.value.attachments != null) {
             attachments.value = the_note.value.attachments;
@@ -275,106 +381,16 @@ function changeFontFamily(event, editorParamter) {
     editorParamter.chain().focus().setFontFamily(fontSize).run();
 }
 
+// Handle the childMounted event and set the child component reference
+const onChildMounted = (childRef) => {
+    console.log("child mounted");
+    note_tags_comp.value = childRef;
+    note_tags_comp.value.loadTagsModel();
+  // Perform your action when the child component is mounted
+  console.log('Child component is mounted:', childComponentRef.value);
+};
+
 </script>
-
-<template>
-    <div class='note-container'>
-        <div class='note-header' v-if="the_notebook">
-            <div class='note-notebook-title-container' v-if="the_notebook">
-                <p class='note-notebook-title'>{{ the_notebook.title }}</p>
-            </div>
-            <div class='separator'>/</div>
-            <div class='note-note-title-container'>
-                <input type='text' class='note-title-input' v-model='the_note.title' v-if="the_note">
-            </div>
-        </div>
-        <div class='note-content-container'>
-            <div class="flex-1">
-                <div class="note-editor-container">
-                    <div class='note-editor'>
-                        <!-- Formatting Section -->
-                        <div class="note-editor-toolbar">
-                            <div class="note-editor-toolbar-formatting">
-                                <div class="custom-select">
-                                    <select @change="changeFontFamily($event, editor)">
-                                        <option v-for="fontFamily in fontFamilies" :value="fontFamily" :key="fontFamily">
-                                            {{ fontFamily }}
-                                        </option>
-                                    </select>
-                                </div>
-                                <div class="custom-select">
-                                    <select @change="changeFontSize($event, editor)">
-                                        <option value="12px">12px</option>
-                                        <option value="14px">14px</option>
-                                        <option value="16px">16px</option>
-                                        <option value="18px">18px</option>
-                                    </select>
-                                </div>
-                                <span></span>
-                                <img src="/ui/format_bold.svg" alt="" class="m-0"
-                                    @click="editor.chain().focus().toggleBold().run()">
-                                <img src="/ui/format_underlined.svg" alt=""
-                                    @click="editor.chain().focus().toggleStrike().run()">
-                                <img src="/ui/format_italic.svg" alt=""
-                                    @click="editor.chain().focus().toggleItalic().run()">
-                                <span></span>
-                                <img src="/ui/format_align_left.svg" alt=""
-                                    @click="editor.chain().focus().setTextAlign('left').run()">
-                                <img src="/ui/format_align_center.svg" alt=""
-                                    @click="editor.chain().focus().setTextAlign('center').run()">
-                                <img src="/ui/format_align_right.svg" alt=""
-                                    @click="editor.chain().focus().setTextAlign('right').run()">
-                                <span></span>
-                                <img src="/ui/add_photo_alternate.svg" alt="" @click="addImage(editor)">
-                            </div>
-                            <div class="note-editor-toolbar-share-icon">
-                                <img src="/ui/share.svg" alt="">
-                            </div>
-                        </div>
-                        <!-- <QuillEditor theme='snow' ref="myQuillEditor" v-model:content="the_note_content" @ready="$event => quillReady()"/> -->
-                        <editor-content :editor="editor" />
-                        <!-- Action buttons -->
-                        <div class="note-action-buttons">
-                            <button class="note-action-buttons-ok" @click="update_note()">Save note</button>
-                            <button class="note-action-buttons-cancel" @click="back()">Back</button>
-                        </div>
-                    </div>
-                    <!-- Drag and drop section with file at buttom -->
-                    <div class="note-drag-drop">
-                        <div class="note-drag-drop-container" @dragover.prevent @drop="handleDrop">
-                            <div class="note-drag-drop-content">
-                                <div>
-                                    <img src="/ui/document-text.svg" alt="">
-                                </div>
-                                <div class="note-drag-drop-text">
-                                    <p>Drag & Drop your files here </p>
-                                    <p>Available format: pdf, xls, txt</p>
-                                </div>
-                            </div>
-
-                        </div>
-                        <div class="note-drag-drop-files">
-                            <div class="note-drag-drop-file" v-for="file in files" :key="file.name">
-                                <img class="file-type" src="/ui/document-text.svg" alt="" srcset="">
-                                <div>
-                                    <p>{{ file.name }}</p>
-                                    <p>{{ formatFileSize(file.size) }}</p>
-                                </div>
-                                <img class="delete" src="/ui/scan_delete.svg" alt="" srcset="" @click="removeFile(file)">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="note-editor-tag">
-                <NoteTag />
-                <div class="h-10"></div>
-                <ChatBot :note="the_note" />
-            </div>
-        </div>
-
-    </div>
-</template>
 
 <style>
 * {

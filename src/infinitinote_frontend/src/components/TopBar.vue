@@ -2,6 +2,8 @@
 import { readUIntLE } from '@dfinity/candid';
 import { ref, onMounted, computed, onBeforeUnmount, inject } from 'vue';
 var userAuthenticated = inject('userAuthenticated');
+var backend = inject('backend');
+
 const searchText = ref('');
 const results = ref({
     materials: [
@@ -24,8 +26,11 @@ const results = ref({
     ]
 });
 const showSuggestions = ref(false);
-function onInput() {
+async function onInput() {
     //fetch data and set results here
+    var search_results = await backend.value.search_notes_by_tag(searchText.value);
+    results.value.notes = [];
+    results.value.notes = search_results;
     showSuggestions.value = true;
 }
 function onBlur() {
@@ -78,7 +83,7 @@ onBeforeUnmount(() => {
                         <div class="content" v-for="note of results.notes" @click="navigate(note, 'notes')">
                             <div class="d-flex">
                                 <img src="/ui/background-notebook-1.svg" alt="">
-                                <p class="name">{{ note.name }}</p>
+                                <p class="name">{{ note.title }}</p>
                             </div>
                         </div>
                     </div>

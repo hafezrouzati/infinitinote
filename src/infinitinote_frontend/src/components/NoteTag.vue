@@ -29,36 +29,55 @@
 </template>
 
 
-<script>
-import { inject, ref } from 'vue';
+<script setup>
+
+import { inject, ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
+const router = useRouter();
+const route = useRoute();
 
+var backend = inject('backend');
 
+var noteID = ref(route.params.noteID);
+var notebookID = ref(route.params.notebookID);
+var the_note = inject('the_note');
 
-export default {
-    setup() {
-        const router = useRouter();
-        const route = useRoute();
+console.log(notebookID.value);
+console.log("NOTE ID");
+console.log(noteID.value);
 
-        var backend = inject('backend');
+var notebooks = inject('notebooks');
+var the_notebook = ref(null);
+var the_note = ref(null);
+
+const chipModel = ref([]);
+const addingChip = ref(false);
+const newChip = ref('');
+
+onMounted(async () => {
+
+    the_notebook.value = notebooks.value.find((n) => n.id == notebookID.value);
+    the_note.value = the_notebook.value.notes.find((n) => n.id == noteID.value);
+    console.log(the_note.value);
+
+    function loadTagsModel() {
+        for (let i = 0; i < the_note.value.tags.length; i++)
+        {
+            chipModel.value.push(the_note.value.tags[i]);
+        }
+    };
+
+    loadTagsModel();
+
+});
         
-        var noteID = ref(route.params.noteID);
-        var notebookID = ref(route.params.notebookID);
 
-        console.log(notebookID.value);
-        console.log("NOTE ID");
-            console.log(noteID.value);
-        
-        const chipModel = ref([]);
-        const addingChip = ref(false);
-        const newChip = ref('');
-
-        const addChip = () => {
+        function addChip() {
             addingChip.value = true;
         };
 
-        const saveChip = async () => {
+        async function saveChip() {
             chipModel.value.push(newChip.value);
             console.log("Save CHIP");
             console.log(notebookID.value);
@@ -76,18 +95,16 @@ export default {
             addingChip.value = false;
         };
 
-        const cancelChip = () => {
+        function cancelChip() {
             newChip.value = '';
             addingChip.value = false;
         };
 
-        const deleteChip = (index) => {
+        function deleteChip(index){
             chipModel.value.splice(index, 1);
         };
 
-        return { chipModel, addingChip, newChip, addChip, saveChip, cancelChip, deleteChip };
-    }
-};
+        //return { chipModel, addingChip, newChip, addChip, saveChip, cancelChip, deleteChip };
 </script>
 
 

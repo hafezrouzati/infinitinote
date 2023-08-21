@@ -73,6 +73,15 @@ struct Notebook
     pub tags: Vec<String>
 }
 
+#[derive(Clone, Default, CandidType)]
+struct SearchResult
+{
+    pub id: UUID,
+    pub title: String,
+    pub filename: String,
+    pub result_type: String
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, CandidType, Default, Deserialize)]
 pub struct AssetID(pub String);
 
@@ -447,6 +456,8 @@ async fn add_tag_to_note(notebook_id: String, note_id: String, tag: String) -> S
     let principal_id = ic_cdk::api::caller();
     let nb_id = UUID(notebook_id);
     let n_id = UUID(note_id);
+    ic_cdk::println!("adding tag {}", n_id);
+
     let mut error_condition = false;
     let the_tag = tag.clone();
 
@@ -466,8 +477,9 @@ async fn add_tag_to_note(notebook_id: String, note_id: String, tag: String) -> S
             let notebook = notebooks_mut.entry(nb_id);
                 notebook.and_modify(|n| {
                     if let Some(note) = n.notes.iter_mut().find(|note| note.id == n_id) {
-                        ic_cdk::println!("adding tag");
-                        note.tags.push(tag);
+                        ic_cdk::println!("adding tag {}", note.id.to_string());
+                        ic_cdk::println!("adding tag {}", tag);
+                        note.tags.push(tag.clone());
                 }
             });
         }
@@ -631,11 +643,8 @@ async fn update_note(notebook_id: String, note_id: String, note_title: String, n
 {
     let mut principal_id = ic_cdk::api::caller().clone();
 
-
-
     if note_id == ""
     {
-        // todo : do stuff
         let note_id = generate_uuid().await;
     }
 
@@ -659,23 +668,13 @@ async fn update_note(notebook_id: String, note_id: String, note_title: String, n
             let notebooks_mut = notebook_store_mut.get_mut(&principal_id).unwrap();
             let notebook = notebooks_mut.entry(nid);
             notebook.and_modify(|n| {
-                let note_index = n.notes.iter().position(|note| note.id == the_note_id.clone()).unwrap();
-                let old_note = &n.notes[note_index];
-
-                ic_cdk::println!("note attachments {}", note_attachments.len());
-
-                let note  = Note { 
-                    id: the_note_id,
-                    title: note_title,
-                    content: note_content,
-                    content_delta: note_content_delta,
-                    attachments: note_attachments,
-                    tags: note_tags
-                };
-
-                n.notes.remove(note_index);
-
-                n.notes.push(note);
+                if let Some(note) = n.notes.iter_mut().find(|note| note.id == the_note_id) {
+                    note.title = note_title;
+                    note.content = note_content;
+                    note.content_delta = note_content_delta;
+                    note.attachments = note_attachments;
+                }
+                
             });
         }
     });
@@ -820,6 +819,74 @@ fn get_asset(asset_id: String) -> Asset
 //     }
 
 // }
+
+
+/////// SEARCH /////////
+#[query]
+fn search_notes_by_tag(tag: String) -> Vec<SearchResult>
+{
+    let mut principal_id = ic_cdk::api::caller().clone();
+    ic_cdk::println!("Pricipal ID {:?}", principal_id);
+    let mut search_results = Vec::<SearchResult>::new();
+
+    NOTEBOOK_STORE.with(|notebook_store| {
+        let mut notebook_store_mut = notebook_store.borrow_mut();
+        let principal_notebook_map = notebook_store_mut.get(&principal_id);
+
+        if principal_notebook_map.is_some()
+        {
+            let principal_notebooks_map_mut = notebook_store_mut.get_mut(&principal_id);
+            let notebooks_map = principal_notebooks_map_mut.unwrap();
+
+            let notebooks = notebooks_map.values().cloned();
+
+            let notebooks_vec = Vec::<Notebook>::from_iter(notebooks);
+
+            for notebook in &notebooks_vec
+            {
+                for note in &notebook.notes
+                {
+                    if (note.tags.contains(&tag))
+                    {
+                        let search_result = SearchResult {
+                            id : note.id.clone(),
+                            title : note.title.clone(),
+                            filename : "".to_string(),
+                            result_type : "note".to_string()
+                        };
+
+                        search_results.push(search_result);
+                    }
+                }
+            }
+
+            
+        }
+    });
+
+    return search_results;
+
+}
+
+fn search_notebooks_by_tag(tag: String) -> Vec<UUID>
+{
+    let mut notebook_ids = Vec::<UUID>::new();
+
+    let ret_val = notebook_ids;
+
+    return ret_val;
+}
+
+fn search_notes_by_text(text: String) -> Vec<UUID>
+{
+    // todo: use proper search index
+
+    let mut note_ids = Vec::<UUID>::new();
+
+    let ret_val = note_ids;
+
+    return ret_val;
+}
 
 
 
