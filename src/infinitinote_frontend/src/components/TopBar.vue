@@ -6,7 +6,7 @@ var backend = inject('backend');
 
 const searchText = ref('');
 const results = ref({
-    materials: [
+    files: [
         {
             name: 'Book_t.pdf',
         }, {
@@ -74,7 +74,7 @@ onBeforeUnmount(() => {
                 <div class="suggestions" v-if="showSuggestions">
                     <div class="suggestion">
                         <p class="header-title">material inside</p>
-                        <div class="content" v-for="material of results.materials" @click="navigate(material, 'material')">
+                        <div class="content" v-for="file of results.files" @click="navigate(file, 'file')">
                             <div class="d-flex">
                                 <img src="/ui/search-pdf.svg" alt="">
                                 <p class="name"> {{ material?.name }}</p>

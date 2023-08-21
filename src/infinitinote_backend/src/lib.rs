@@ -77,6 +77,7 @@ struct Notebook
 struct SearchResult
 {
     pub id: UUID,
+    pub notebook_id: UUID,
     pub title: String,
     pub filename: String,
     pub filetype: String,
@@ -927,6 +928,7 @@ fn search_notes_by_tag(tag: String) -> Vec<SearchResult>
                     {
                         let search_result = SearchResult {
                             id : note.id.clone(),
+                            notebook_id : notebook.id.clone(),
                             title : note.title.clone(),
                             filename : "".to_string(),
                             filetype : "".to_string(),
@@ -971,6 +973,7 @@ fn search_notebooks_by_tag(tag: String) -> Vec<SearchResult>
                 {
                     let search_result = SearchResult {
                         id : notebook.id.clone(),
+                        notebook_id : notebook.id.clone(),
                         title : notebook.title.clone(),
                         filename : "".to_string(),
                         filetype : "".to_string(),
@@ -1012,6 +1015,7 @@ fn search_notes_by_text(text: String) -> Vec<SearchResult>
                     {
                         let search_result = SearchResult {
                             id : note.id.clone(),
+                            notebook_id: notebook.id.clone(),
                             title : note.title.clone(),
                             filename : "".to_string(),
                             filetype : "".to_string(),

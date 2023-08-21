@@ -22,6 +22,7 @@ type Asset = record {
 
 type SearchResult = record {
     "id" : text;
+    "notebook_id" : text;
     "title" : text;
     "filename" : text;
     "result_type" : text;
