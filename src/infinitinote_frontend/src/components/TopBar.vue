@@ -28,9 +28,11 @@ const results = ref({
 const showSuggestions = ref(false);
 async function onInput() {
     //fetch data and set results here
-    var search_results = await backend.value.search_notes_by_tag(searchText.value);
+    var notes_search_results = await backend.value.search_notes_by_tag(searchText.value);
+    var notebooks_search_results = await backend.value.search_notebooks_by_tag(searchText.value);
     results.value.notes = [];
     results.value.notes = search_results;
+
     showSuggestions.value = true;
 }
 function onBlur() {

@@ -79,6 +79,7 @@ struct SearchResult
     pub id: UUID,
     pub title: String,
     pub filename: String,
+    pub filetype: String,
     pub result_type: String
 }
 
@@ -373,14 +374,6 @@ async fn add_notebook_for_principal(principal_string: String, notebook_title: St
     ic_cdk::println!("Pricipal ID {:?}", principal_id);
     ic_cdk::println!("Pricipal Caller {:?}", principal_caller);
 
-    if principal_id.eq(&principal_caller)
-    {
-        ic_cdk::println!("ARE EQUAL");
-    }
-    else {
-        ic_cdk::println!("ARE NOT EQUAL");
-    }
-
     let notebook_id = UUID(generate_uuid().await);
 
     NOTEBOOK_STORE.with(|notebook_store| {
@@ -450,13 +443,54 @@ async fn add_tag_to_notebook(notebook_id: String, tag: String) -> String
     return format!("Added Tag {}", the_tag);
 }
 
+#[update(name="remove_tag_from_notebook")]
+async fn remove_tag_from_notebook(notebook_id: String, tag: String) -> String
+{
+    let principal_id = ic_cdk::api::caller();
+    let nid = UUID(notebook_id);
+    let mut error_condition = false;
+    let the_tag = tag.clone();
+
+    NOTEBOOK_STORE.with(|notebook_store| {
+        let mut notebook_store_mut = notebook_store.borrow_mut();
+        let principal_notebooks = notebook_store_mut.get(&principal_id);
+
+        if principal_notebooks.is_none()
+        {
+            error_condition = true;
+        }
+
+        if principal_notebooks.is_some()
+        {
+            let mut notebooks_mut = notebook_store_mut.get_mut(&principal_id).unwrap();
+            
+            let notebook = notebooks_mut.entry(nid);
+                notebook.and_modify(|n| 
+
+                    if let Some(index) = n.tags.iter().position(|x| x == &tag) {
+                        ic_cdk::println!("matched tag now removing tag {}", tag);
+                        n.tags.remove(index);
+                    }
+            );
+        }
+    });
+
+    if error_condition
+    {
+        return "Invalid notebook ID".to_string();
+    }
+
+    return format!("Removed Tag {}", the_tag);
+}
+
+
+
 #[update(name="add_tag_to_note")]
 async fn add_tag_to_note(notebook_id: String, note_id: String, tag: String) -> String
 {
     let principal_id = ic_cdk::api::caller();
     let nb_id = UUID(notebook_id);
     let n_id = UUID(note_id);
-    ic_cdk::println!("adding tag {}", n_id);
 
     let mut error_condition = false;
     let the_tag = tag.clone();
@@ -477,8 +511,7 @@ async fn add_tag_to_note(notebook_id: String, note_id: String, tag: String) -> S
             let notebook = notebooks_mut.entry(nb_id);
                 notebook.and_modify(|n| {
                     if let Some(note) = n.notes.iter_mut().find(|note| note.id == n_id) {
-                        ic_cdk::println!("adding tag {}", note.id.to_string());
-                        ic_cdk::println!("adding tag {}", tag);
+                        ic_cdk::println!("adding tag {} to note {}", tag, n_id);
                         note.tags.push(tag.clone());
                 }
             });
@@ -493,6 +526,51 @@ async fn add_tag_to_note(notebook_id: String, note_id: String, tag: String) -> S
 
     return format!("Added Tag {}", the_tag);
 }
+
+#[update(name="remove_tag_from_note")]
+async fn remove_tag_from_note(notebook_id: String, note_id: String, tag: String) -> String
+{
+    let principal_id = ic_cdk::api::caller();
+    let nb_id = UUID(notebook_id);
+    let n_id = UUID(note_id);
+
+    let mut error_condition = false;
+    let the_tag = tag.clone();
+
+    NOTEBOOK_STORE.with(|notebook_store| {
+        let mut notebook_store_mut = notebook_store.borrow_mut();
+        let principal_notebooks = notebook_store_mut.get(&principal_id);
+
+        if principal_notebooks.is_none()
+        {
+            error_condition = true;
+        }
+
+        if principal_notebooks.is_some()
+        {
+            let mut notebooks_mut = notebook_store_mut.get_mut(&principal_id).unwrap();
+            
+            let notebook = notebooks_mut.entry(nb_id);
+                notebook.and_modify(|n| {
+                    if let Some(note) = n.notes.iter_mut().find(|note| note.id == n_id) {
+                        if let Some(index) = note.tags.iter().position(|x| x == &tag) {
+                            ic_cdk::println!("removing tag {} from note {}", tag, n_id);
+                            note.tags.remove(index);
+                        }
+                }
+            });
+        }
+
+    });
+
+    if error_condition
+    {
+        return "Invalid note ID".to_string();
+    }
+
+    return format!("Added Tag {}", the_tag);
+}
+
 
 #[query(name="get_tags_for_notebook")]
 async fn get_tags_for_notebook(notebook_id: String) -> Vec<String>
@@ -826,7 +904,6 @@ fn get_asset(asset_id: String) -> Asset
 fn search_notes_by_tag(tag: String) -> Vec<SearchResult>
 {
     let mut principal_id = ic_cdk::api::caller().clone();
-    ic_cdk::println!("Pricipal ID {:?}", principal_id);
     let mut search_results = Vec::<SearchResult>::new();
 
     NOTEBOOK_STORE.with(|notebook_store| {
@@ -846,12 +923,13 @@ fn search_notes_by_tag(tag: String) -> Vec<SearchResult>
             {
                 for note in &notebook.notes
                 {
-                    if (note.tags.contains(&tag))
+                    if note.tags.contains(&tag)
                     {
                         let search_result = SearchResult {
                             id : note.id.clone(),
                             title : note.title.clone(),
                             filename : "".to_string(),
+                            filetype : "".to_string(),
                             result_type : "note".to_string()
                         };
 
@@ -868,24 +946,98 @@ fn search_notes_by_tag(tag: String) -> Vec<SearchResult>
 
 }
 
-fn search_notebooks_by_tag(tag: String) -> Vec<UUID>
+#[query]
+fn search_notebooks_by_tag(tag: String) -> Vec<SearchResult>
 {
-    let mut notebook_ids = Vec::<UUID>::new();
+    let mut principal_id = ic_cdk::api::caller().clone();
+    let mut search_results = Vec::<SearchResult>::new();
 
-    let ret_val = notebook_ids;
+    NOTEBOOK_STORE.with(|notebook_store| {
+        let mut notebook_store_mut = notebook_store.borrow_mut();
+        let principal_notebook_map = notebook_store_mut.get(&principal_id);
 
-    return ret_val;
+        if principal_notebook_map.is_some()
+        {
+            let principal_notebooks_map_mut = notebook_store_mut.get_mut(&principal_id);
+            let notebooks_map = principal_notebooks_map_mut.unwrap();
+
+            let notebooks = notebooks_map.values().cloned();
+
+            let notebooks_vec = Vec::<Notebook>::from_iter(notebooks);
+
+            for notebook in &notebooks_vec
+            {
+                if notebook.tags.contains(&tag)
+                {
+                    let search_result = SearchResult {
+                        id : notebook.id.clone(),
+                        title : notebook.title.clone(),
+                        filename : "".to_string(),
+                        filetype : "".to_string(),
+                        result_type : "notebook".to_string()
+                    };
+                }
+            }
+        
+        }
+    });
+
+    return search_results;
 }
 
-fn search_notes_by_text(text: String) -> Vec<UUID>
+fn search_notes_by_text(text: String) -> Vec<SearchResult>
 {
     // todo: use proper search index
+    let mut principal_id = ic_cdk::api::caller().clone();
+    let mut search_results = Vec::<SearchResult>::new();
 
-    let mut note_ids = Vec::<UUID>::new();
+    NOTEBOOK_STORE.with(|notebook_store| {
+        let mut notebook_store_mut = notebook_store.borrow_mut();
+        let principal_notebook_map = notebook_store_mut.get(&principal_id);
 
-    let ret_val = note_ids;
+        if principal_notebook_map.is_some()
+        {
+            let principal_notebooks_map_mut = notebook_store_mut.get_mut(&principal_id);
+            let notebooks_map = principal_notebooks_map_mut.unwrap();
 
-    return ret_val;
+            let notebooks = notebooks_map.values().cloned();
+
+            let notebooks_vec = Vec::<Notebook>::from_iter(notebooks);
+
+            for notebook in &notebooks_vec
+            {
+                for note in &notebook.notes
+                {
+                    if note.content.contains(&text)
+                    {
+                        let search_result = SearchResult {
+                            id : note.id.clone(),
+                            title : note.title.clone(),
+                            filename : "".to_string(),
+                            filetype : "".to_string(),
+                            result_type : "note".to_string()
+                        };
+
+                        search_results.push(search_result);
+                    }
+                }
+            }
+        }
+    });
+
+    return search_results;
+}
+
+fn search_assets_by_filename(filename: String) -> Vec<SearchResult>
+{
+    let mut search_results = Vec::<SearchResult>::new();
+    let mut principal_id = ic_cdk::api::caller().clone();
+
+    ASSET_STORE.with(|asset_store| {
+        let mut asset_store_mut = asset_store.borrow_mut();
+    });
+
+    return search_results;
 }
 
 
