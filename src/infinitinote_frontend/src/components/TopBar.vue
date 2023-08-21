@@ -31,7 +31,7 @@ async function onInput() {
     var notes_search_results = await backend.value.search_notes_by_tag(searchText.value);
     var notebooks_search_results = await backend.value.search_notebooks_by_tag(searchText.value);
     results.value.notes = [];
-    results.value.notes = search_results;
+    results.value.notes = notes_search_results;
 
     showSuggestions.value = true;
 }
