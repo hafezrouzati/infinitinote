@@ -3,7 +3,8 @@ import { readUIntLE } from '@dfinity/candid';
 import { ref, onMounted, computed, onBeforeUnmount, inject } from 'vue';
 var userAuthenticated = inject('userAuthenticated');
 var backend = inject('backend');
-
+import { useRouter } from 'vue-router';
+const router = useRouter();
 const searchText = ref('');
 const results = ref({
     files: [
@@ -57,7 +58,9 @@ onMounted(() => {
 onBeforeUnmount(() => {
     document.removeEventListener('click', handleClickOutside);
 });
-
+function navigateToNotebook() {
+    router.push('/home');
+}
 </script>
 
 <template>
@@ -99,9 +102,9 @@ onBeforeUnmount(() => {
                 </p>
             </div>
             <div class="container-logged-in left-content" v-if="userAuthenticated">
-                <p>
+                <p @click="navigateToNotebook()">
                     <img src="/ui/document.svg" alt="">
-                    My notes
+                    My Notebooks
                 </p>
                 <p class="setting">
                     <img src="/ui/setting.svg" alt="">
