@@ -6,8 +6,7 @@
                 <span class="first">Powered</span>
                 <span class="second">by Internet Computer</span>
                 <span class="third">
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et
-                    dolore magna aliqua.
+                    Infiniti Note: Where the Unbounded Universe of Blockchain and AI Enhances Your Notes with Endless Insights.
                 </span>
             </div>
         </div>
