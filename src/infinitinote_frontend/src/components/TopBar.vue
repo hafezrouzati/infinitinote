@@ -49,7 +49,18 @@ const handleClickOutside = (event) => {
     }
 };
 function navigate(data, type) {
+    console.log(data)
+    switch (type) {
+        case 'notes':
+            router.push(`/note/${data.notebook_id}/${data.id}/`);
+            break;
+        case '':
 
+            break;
+
+        default:
+            break;
+    }
 }
 onMounted(() => {
     document.addEventListener('click', handleClickOutside);
