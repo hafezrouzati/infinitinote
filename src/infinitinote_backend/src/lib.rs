@@ -797,6 +797,47 @@ async fn get_notes_for_notebook(notebook_id: String) -> Vec<Note>
     return ret_val;
 }
 
+#[query]
+async fn get_shared_note(shared_principal: String, notebook_id: String, note_id: String) -> Note
+{
+    let sharing_principal = Principal::from_text(shared_principal).unwrap();
+
+    let the_note_id = UUID(note_id);
+    let nid = UUID(notebook_id);
+
+    let mut return_note = Note {
+        id: UUID("".to_string()),
+        title: "".to_string(),
+        content: "".to_string(),
+        content_delta: "".to_string(),
+        attachments: Vec::<AssetID>::new(),
+        tags: Vec::<String>::new()
+    };
+
+    NOTEBOOK_STORE.with(|notebook_store| {
+        let mut notebook_store_mut = notebook_store.borrow_mut();
+        let principal_notebooks = notebook_store_mut.get(&sharing_principal);
+
+        if principal_notebooks.is_none()
+        {
+         
+        }
+
+        if principal_notebooks.is_some()
+        {
+            let notebooks_mut = notebook_store_mut.get_mut(&sharing_principal).unwrap();
+            let notebook = notebooks_mut.entry(nid);
+            notebook.and_modify(|n| {
+                if let Some(note) = n.notes.iter_mut().find(|note| note.id == the_note_id) {
+                    return_note = note.clone();
+                }
+            });
+        }
+    });
+
+    return return_note;
+}
+
 ////////////////////////////////////////////////////
 // File Upload                                  ////
 ////////////////////////////////////////////////////

@@ -11,7 +11,8 @@ export const routes = [
     { path: '/home', component: NotebooksHome },
     { path: '/add_notebook', component: NotebookAdd },
     { path: '/notebook/:notebookID', name: 'notebook', component: Notebook },
-    { path: '/note/:notebookID/:noteID/', name: 'note', component: Note }
+    { path: '/note/:notebookID/:noteID/', name: 'note', component: Note },
+    { path: '/sharednote/:principalID/:notebookID/:noteID', name: 'sharednote', component: Note }
 ]
 
 export const router = createRouter( {

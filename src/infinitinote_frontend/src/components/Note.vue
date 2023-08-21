@@ -49,7 +49,7 @@
                                 <span></span>
                                 <img src="/ui/add_photo_alternate.svg" alt="" @click="addImage(editor)">
                             </div>
-                            <div class="note-editor-toolbar-share-icon">
+                            <div class="note-editor-toolbar-share-icon" @click="">
                                 <img src="/ui/share.svg" alt="">
                             </div>
                         </div>
@@ -307,10 +307,19 @@ onMounted(async () => {
     else {
         console.log('load notebooks');
         isLoading.value = true;
-        await load_notebooks();
-        the_notebook.value = notebooks.value.find((n) => n.id == notebookID.value);
-
-        the_note.value = the_notebook.value.notes.find((n) => n.id == noteID.value);
+        if (route.params.contains('sharednote'))
+        {
+            let the_notebook_id = route.params.notebookID;
+            let the_note_id = route.params.noteID;
+            the_note.value = await backend.value.get_shared_note(userPrincipal, the_notebook_id, the_note_id );
+            console.log(the_note.value);
+        }
+        else 
+        {
+            await load_notebooks();
+            the_notebook.value = notebooks.value.find((n) => n.id == notebookID.value);
+            the_note.value = the_notebook.value.notes.find((n) => n.id == noteID.value);
+        }
 
         console.log(the_note.value);
         console.log(the_note.value.tags);
