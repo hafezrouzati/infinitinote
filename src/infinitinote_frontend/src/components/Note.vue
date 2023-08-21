@@ -199,11 +199,7 @@ async function downloadFile(fileData) {
     document.body.appendChild(downloadLink);
     downloadLink.href = URL.createObjectURL(fileData, {});
     downloadLink.download = fileData.name;
-
-    // Trigger the download
     downloadLink.click();
-
-    // Remove the <a> tag from the DOM after the download
     downloadLink.parentNode.removeChild(downloadLink);
 }
 async function background_update_note() {
@@ -329,7 +325,8 @@ onMounted(async () => {
                 var attachmentID = attachments.value[i];
                 console.log(typeof attachmentID);
                 var attachment = await backend.value.get_asset(attachmentID);
-                var file = new File(attachment.bytes, attachment.filename);
+                var blob = new Blob([attachment.bytes], {type : "application/octet-stream"});
+                var file = new File([blob], attachment.filename, { type : "application/octet-stream"});
                 files.value.push(file);
                 console.log(attachment);
             }
