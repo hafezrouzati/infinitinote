@@ -6,6 +6,7 @@ var backend = inject('backend');
 import { useRouter } from 'vue-router';
 const router = useRouter();
 const searchText = ref('');
+const loader = ref(false);
 const results = ref({
     files: [
         {
@@ -31,6 +32,7 @@ const results = ref({
 });
 const showSuggestions = ref(false);
 async function onInput() {
+    loader.value = true;
     //fetch data and set results here
     var notes_search_results = await backend.value.search_notes_by_tag(searchText.value);
     var notebooks_search_results = await backend.value.search_notebooks_by_tag(searchText.value);
@@ -39,7 +41,7 @@ async function onInput() {
     results.value.notebooks = [];
     results.value.notes = notes_search_results;
     results.value.notebooks = notebooks_search_results;
-
+    loader.value = false;
     showSuggestions.value = true;
 }
 function onBlur() {
@@ -90,6 +92,7 @@ function navigateToNotebook() {
                 <div class="search-container">
                     <img src="/ui/manage_search.svg" alt="">
                     <input type="search" v-model="searchText" @input="onInput" @blur="onBlur">
+                    <img src="/ui/loader.gif" alt="" srcset="" v-if="loader" class="h-loader-29px">
                 </div>
                 <div class="suggestions" v-if="showSuggestions">
                     <div class="suggestion">
@@ -288,5 +291,9 @@ function navigateToNotebook() {
 
 .container-logged-in .setting img {
     margin-right: 0px !important
+}
+
+.h-loader-29px {
+    height: 29px;
 }
 </style>
