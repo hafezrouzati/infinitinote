@@ -195,16 +195,12 @@ async function background_update_note() {
 }
 
 async function update_note() {
-    console.log("hey")
     isLoading.value = true;
     // Get the plain text content from the editor
     const note_content = editor.value.getText();
     the_note.value.content = note_content;
     // Get the delta string from the editor
     const note_content_delta = editor.value.getJSON();
-
-    console.log("attachments");
-    console.log(attachments.value);
 
     const note_content_delta_string = JSON.stringify(note_content_delta);
     let result = await backend.value.update_note(
