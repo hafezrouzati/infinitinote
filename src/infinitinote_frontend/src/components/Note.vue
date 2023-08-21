@@ -76,7 +76,8 @@
 
                         </div>
                         <div class="note-drag-drop-files">
-                            <div class="note-drag-drop-file" v-for="file in files" :key="file.name">
+                            <div class="note-drag-drop-file" v-for="file in files" :key="file.name"
+                                @click="downloadFile(file)">
                                 <img class="file-type" src="/ui/document-text.svg" alt="" srcset="">
                                 <div>
                                     <p>{{ file.name }}</p>
@@ -190,6 +191,21 @@ async function load_notebooks() {
     isLoading.value = false;
 }
 
+async function downloadFile(fileData) {
+    console.log(fileData);
+    var downloadLink = document.createElement('a');
+    downloadLink.id = 'downloadLink';
+    downloadLink.style.display = 'none';
+    document.body.appendChild(downloadLink);
+    downloadLink.href = URL.createObjectURL(fileData, {});
+    downloadLink.download = fileData.name;
+
+    // Trigger the download
+    downloadLink.click();
+
+    // Remove the <a> tag from the DOM after the download
+    downloadLink.parentNode.removeChild(downloadLink);
+}
 async function background_update_note() {
     //todo: background update the note
 }
@@ -382,8 +398,8 @@ const onChildMounted = (childRef) => {
     console.log("child mounted");
     note_tags_comp.value = childRef;
     note_tags_comp.value.loadTagsModel();
-  // Perform your action when the child component is mounted
-  console.log('Child component is mounted:', childComponentRef.value);
+    // Perform your action when the child component is mounted
+    console.log('Child component is mounted:', childComponentRef.value);
 };
 
 </script>
