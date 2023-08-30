@@ -6,7 +6,7 @@ const props = defineProps({
 });
 const data = ref("");
 const question = ref("");
-const socket = io("http://23.111.144.10:3000/");
+const socket = io("https://ai.infinitinote.com:3000/");
 const loading = ref(false);
 const id = ref('')
 const sendQuestion = () => {
@@ -71,8 +71,8 @@ onMounted(() => {
       <textarea v-model="question" cols="30" rows="10" placeholder="Please enter your question"></textarea>
     </div>
     <div class="note-action-buttons">
-      <button class="note-action-buttons-ok"
-        @click="loading ? cancelRequest() : sendQuestion()">{{ loading ? 'Cancel' : 'Send' }}</button>
+      <button class="note-action-buttons-ok" @click="loading ? cancelRequest() : sendQuestion()">{{ loading ? 'Cancel' :
+        'Send' }}</button>
     </div>
     <div class="note-tag-footer" v-if="data">
       <p>Answer:</p>
@@ -164,4 +164,5 @@ onMounted(() => {
   font-weight: 400;
   margin-top: 0px;
   margin-bottom: 20px;
-}</style>
+}
+</style>
